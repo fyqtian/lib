@@ -1,3 +1,6 @@
 {"level":"debug","ts":"2006","caller":"zap/zap_test.go:35","msg":"debug","name":"van"}
 {"level":"info","ts":"2006","caller":"zap/zap_test.go:36","msg":"info","name":"van"}
 {"level":"info","ts":"2006","caller":"zap/zap_test.go:64","msg":"info","name":"van"}
+{"level":"debug","ts":"2006","caller":"zap/zap_test.go:35","msg":"debug","name":"van"}
+{"level":"info","ts":"2006","caller":"zap/zap_test.go:36","msg":"info","name":"van"}
+{"level":"info","ts":"2006","caller":"zap/zap_test.go:64","msg":"info","name":"van"}

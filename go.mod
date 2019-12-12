@@ -1,4 +1,4 @@
-module code.sunmi.com/lib
+module github.com/fyqtian/lib
 
 go 1.13
 

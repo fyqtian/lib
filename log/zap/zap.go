@@ -1,8 +1,8 @@
 package zap
 
 import (
-	"code.sunmi.com/lib/log/rotate"
 	"errors"
+	"github.com/fyqtian/lib/log/rotate"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"net/http"
