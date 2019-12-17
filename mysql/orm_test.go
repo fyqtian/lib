@@ -11,7 +11,7 @@ func createOption() *Options {
 		Host:     "ubuntuVM",
 		User:     "root",
 		Passwd:   "123456",
-		Name:     "test",
+		DbName:   "test",
 		Charset:  "utf8",
 		Port:     "3306",
 		Location: "Local",
