@@ -1,6 +1,7 @@
 package zap
 
 import (
+	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -9,8 +10,10 @@ import (
 	"testing"
 )
 
+var prefix = "log"
+
 func TestNewZap(t *testing.T) {
-	o := &Option{
+	o := &Options{
 		FilePath:     "Runtime/test/test.log",
 		FileSize:     1024,
 		FileBackup:   3,
@@ -24,7 +27,7 @@ func TestNewZap(t *testing.T) {
 		t.Fatal(err)
 		return
 	} else {
-		if loggerOther, err := NewZap("log", o); err != nil {
+		if loggerOther, err := NewZap(prefix, o); err != nil {
 			t.Fatal(err)
 		} else {
 			if loggerOther != logger {
@@ -67,5 +70,12 @@ func TestNewZap(t *testing.T) {
 		}
 
 	}
+}
 
+//如果单独测会通不过
+func TestGet(t *testing.T) {
+	Convey("test Get should return *helper after TestNewZap", t, func() {
+		_, err := Get(prefix)
+		So(err, ShouldEqual, nil)
+	})
 }

@@ -12,16 +12,16 @@ var (
 )
 
 type Helper struct {
-	option *Option
+	options *Options
 	*viper.Viper
 }
 
-type Option struct {
+type Options struct {
 	ConfigPath []string
 	FileName   string
 }
 
-func get(prefix string) (*Helper, error) {
+func Get(prefix string) (*Helper, error) {
 	if v, ok := store.Load(prefix); !ok {
 		return nil, NotExists
 	} else {
@@ -30,17 +30,15 @@ func get(prefix string) (*Helper, error) {
 	}
 }
 
-func NewViper(prefix string, option *Option) (*Helper, error) {
+func NewViper(prefix string, option *Options) (*Helper, error) {
 	var err error
 	var h = &Helper{}
 
-	if h, err := get(prefix); err == nil {
+	if h, err := Get(prefix); err == nil {
 		return h, nil
 	}
 
-	h = &Helper{
-		option: option,
-	}
+	h.options = option
 	v := viper.New()
 	v.SetConfigName(option.FileName)
 
