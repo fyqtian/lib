@@ -9,7 +9,7 @@ import (
 func TestNewViper(t *testing.T) {
 	Convey("test newviper", t, func() {
 		path, _ := filepath.Abs(".")
-		op := &Option{[]string{path}, "test-config"}
+		op := &Options{[]string{path}, "test-config"}
 		if config, err := NewViper("test", op); err != nil {
 			t.Fatal(err)
 			return

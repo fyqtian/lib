@@ -12,12 +12,12 @@ import (
 )
 
 type Helper struct {
-	option *Option
+	options *Options
 	*zap.Logger
 }
 type Field = zap.Field
 
-type Option struct {
+type Options struct {
 	//存储位置
 	FilePath string
 	//每个轮转日志大小
@@ -41,7 +41,7 @@ var (
 	NotExists = errors.New("zap not exists")
 )
 
-func get(prefix string) (*Helper, error) {
+func Get(prefix string) (*Helper, error) {
 	if v, ok := store.Load(prefix); !ok {
 		return nil, NotExists
 	} else {
@@ -50,29 +50,29 @@ func get(prefix string) (*Helper, error) {
 	}
 }
 
-func NewZap(prefix string, option *Option) (*Helper, error) {
+func NewZap(prefix string, option *Options) (*Helper, error) {
 	var err error
 	var h = &Helper{}
-	if h, err := get(prefix); err == nil {
+	if h, err := Get(prefix); err == nil {
 		return h, nil
 	}
 	h = &Helper{
-		option: option,
+		options: option,
 	}
 	//日志滚动
-	rotate := rotate.NewRotate(h.option.FilePath, h.option.FileSize, h.option.FileBackup, h.option.FileMaxAge, h.option.FileCompress)
+	rotate := rotate.NewRotate(h.options.FilePath, h.options.FileSize, h.options.FileBackup, h.options.FileMaxAge, h.options.FileCompress)
 	var arr []zapcore.Core
 	//可通过http请求调整level
-	autoLevel := zap.NewAtomicLevelAt(h.logLever(h.option.Level))
+	autoLevel := zap.NewAtomicLevelAt(h.logLever(h.options.Level))
 	core := zapcore.NewCore(h.defaultEncoder(), zapcore.AddSync(rotate), autoLevel)
 
 	//todo
 	// 如果配置了端口认为开启了http接口调整日志级别
-	if h.option.Listen != "" {
-		h.registerHttp(&autoLevel, h.option.Listen)
+	if h.options.Listen != "" {
+		h.registerHttp(&autoLevel, h.options.Listen)
 	}
 	arr = append(arr, core)
-	if h.option.Debug {
+	if h.options.Debug {
 		tmp := zapcore.NewCore(h.defaultEncoder(), os.Stdout, autoLevel)
 		arr = append(arr, tmp)
 	}
@@ -116,7 +116,7 @@ func (s *Helper) logLever(l string) zapcore.Level {
 func (s *Helper) defaultEncoder() zapcore.Encoder {
 	c := zap.NewProductionEncoderConfig()
 	c.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString("2006")
+		enc.AppendString("2006-01-02 15:04:05")
 	}
 	return zapcore.NewJSONEncoder(c)
 }
