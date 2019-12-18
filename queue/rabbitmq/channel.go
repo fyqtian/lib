@@ -50,8 +50,12 @@ func (s *Channel) Consumer(queue, consumer string, autoAck, exclusive, noLocal, 
 				time.Sleep(defaultConnectionTimeout)
 				continue
 			}
-			for msg := range d {
-				deliveries <- msg
+			for {
+				if msg, ok := <-d; !ok {
+					break
+				} else {
+					deliveries <- msg
+				}
 			}
 		}
 	}()
