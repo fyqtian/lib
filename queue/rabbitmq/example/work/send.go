@@ -15,7 +15,7 @@ func create() (*rabbitmq.Helper, error) {
 		Passwd: "guest",
 		Vhost:  "test",
 	}
-	if client, err := rabbitmq.NewWithRetry("mq", op, 0, 10*time.Second); err != nil {
+	if client, err := rabbitmq.NewWithRetry(op, 0, 10*time.Second); err != nil {
 		return nil, err
 	} else {
 		return client, nil

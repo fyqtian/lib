@@ -1,7 +1,6 @@
 package zap
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -23,17 +22,17 @@ func TestNewZap(t *testing.T) {
 		Level:        "debug",
 		Listen:       "127.0.0.1:9999",
 	}
-	if logger, err := NewZap("log", o); err != nil {
+	if logger, err := NewZap(o); err != nil {
 		t.Fatal(err)
 		return
 	} else {
-		if loggerOther, err := NewZap(prefix, o); err != nil {
-			t.Fatal(err)
-		} else {
-			if loggerOther != logger {
-				t.Fatal("singleton error")
-			}
-		}
+		//if loggerOther, err := NewZap(o); err != nil {
+		//	t.Fatal(err)
+		//} else {
+		//	if loggerOther != logger {
+		//		t.Fatal("singleton error")
+		//	}
+		//}
 
 		logger.Debug("debug", zap.String("name", "van"))
 		logger.Info("info", zap.String("name", "van"))
@@ -72,10 +71,11 @@ func TestNewZap(t *testing.T) {
 	}
 }
 
-//如果单独测会通不过
-func TestGet(t *testing.T) {
-	Convey("test Get should return *helper after TestNewZap", t, func() {
-		_, err := Get(prefix)
-		So(err, ShouldEqual, nil)
-	})
-}
+//
+////如果单独测会通不过
+//func TestGet(t *testing.T) {
+//	Convey("test Get should return *helper after TestNewZap", t, func() {
+//		_, err := Get(prefix)
+//		So(err, ShouldEqual, nil)
+//	})
+//}

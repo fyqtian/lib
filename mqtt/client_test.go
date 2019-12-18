@@ -23,7 +23,7 @@ func createOption() *Options {
 func TestNewMqtt(t *testing.T) {
 	Convey("test NewMqtt", t, func() {
 		op := createOption()
-		_, err := NewMqtt("test", op)
+		_, err := NewMqtt(op)
 		So(err, ShouldEqual, nil)
 	})
 }
@@ -31,16 +31,9 @@ func TestNewMqtt(t *testing.T) {
 func TestNewWithRetry(t *testing.T) {
 	Convey("test NewWithRetry", t, func() {
 		op := createOption()
-		var h1, h2, h3 *Helper
 		var err error
-		h1, err = NewWithRetry("test", op, 0, 10*time.Second)
+		_, err = NewWithRetry(op, 0, 10*time.Second)
 		So(err, ShouldEqual, nil)
-		h2, _ = NewWithRetry("test", op, 0, 10*time.Second)
-
-		h3, _ = NewWithRetry("test-other", op, 0, 10*time.Second)
-
-		So(h1, ShouldEqual, h2)
-		So(h1, ShouldNotEqual, h3)
 
 	})
 }
@@ -48,7 +41,7 @@ func TestNewWithRetry(t *testing.T) {
 func TestHelper_Sub(t *testing.T) {
 	Convey("test mqtt sub", t, func() {
 		op := createOption()
-		if c, err := NewMqtt("test", op); err != nil {
+		if c, err := NewMqtt(op); err != nil {
 			t.Fatal(err)
 			return
 		} else {
@@ -72,7 +65,7 @@ func TestHelper_Sub(t *testing.T) {
 func TestHelper_PubSample(t *testing.T) {
 	Convey("test mqtt pub", t, func() {
 		op := createOption()
-		if c, err := NewMqtt("test", op); err != nil {
+		if c, err := NewMqtt(op); err != nil {
 			t.Fatal(err)
 			return
 		} else {

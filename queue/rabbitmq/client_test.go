@@ -21,14 +21,14 @@ func createOptions() *Options {
 
 func TestNewRabbitmq(t *testing.T) {
 	Convey("test NewRabbitmq", t, func() {
-		_, err := NewRabbitmq("mq", createOptions())
+		_, err := NewRabbitmq(createOptions())
 		So(err, ShouldEqual, nil)
 	})
 }
 
 func TestChannel_PushlishSample(t *testing.T) {
 	Convey("test channel_publish", t, func() {
-		helper, err := NewRabbitmq("mq", createOptions())
+		helper, err := NewRabbitmq(createOptions())
 		So(err, ShouldEqual, nil)
 		ch, err := helper.Channel()
 		So(err, ShouldEqual, nil)
@@ -45,7 +45,7 @@ func TestChannel_PushlishSample(t *testing.T) {
 
 func TestChannel_Consumer(t *testing.T) {
 	Convey("test channel_consumer", t, func() {
-		helper, err := NewRabbitmq("mq", createOptions())
+		helper, err := NewRabbitmq(createOptions())
 		So(err, ShouldEqual, nil)
 
 		ch, err := helper.Channel()
@@ -66,7 +66,7 @@ func TestChannel_Consumer(t *testing.T) {
 
 func TestHelper_listen(t *testing.T) {
 	Convey("test reconnect", t, func() {
-		helper, err := NewRabbitmq("mq", createOptions())
+		helper, err := NewRabbitmq(createOptions())
 		So(err, ShouldEqual, nil)
 		//restart rabbitmq by manual
 		time.Sleep(20e9)
@@ -98,7 +98,7 @@ func TestNewWithRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewWithRetry(tt.args.prefix, tt.args.option, tt.args.attempts, tt.args.interval)
+			_, err := NewWithRetry(tt.args.option, tt.args.attempts, tt.args.interval)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewWithRetry() error = %v, wantErr %v", err, tt.wantErr)
 				return

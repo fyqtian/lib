@@ -125,15 +125,15 @@ func (s *Helper) listen() {
 	}
 }
 
-func NewRabbitmq(prefix string, op *Options) (*Helper, error) {
+func NewRabbitmq(op *Options) (*Helper, error) {
 	var (
 		h    = &Helper{}
 		err  error
 		conn *amqp.Connection
 	)
-	if s, err := Get(prefix); err == nil {
-		return s, nil
-	}
+	//if s, err := Get(prefix); err == nil {
+	//	return s, nil
+	//}
 	h.options = op
 
 	if conn, err = h.connect(); err != nil {
@@ -141,17 +141,17 @@ func NewRabbitmq(prefix string, op *Options) (*Helper, error) {
 	}
 	h.conn = conn
 	go h.listen()
-	store.Store(prefix, h)
+	//store.Store(prefix, h)
 	return h, nil
 }
 
-func NewWithRetry(prefix string, option *Options, attempts int, interval time.Duration) (*Helper, error) {
+func NewWithRetry(option *Options, attempts int, interval time.Duration) (*Helper, error) {
 	var (
 		h   *Helper
 		err error
 	)
 	utils.Retry(func() error {
-		if h, err = NewRabbitmq(prefix, option); err != nil {
+		if h, err = NewRabbitmq(option); err != nil {
 			return err
 		}
 		return nil
@@ -159,11 +159,11 @@ func NewWithRetry(prefix string, option *Options, attempts int, interval time.Du
 	return h, err
 }
 
-func Get(prefix string) (*Helper, error) {
-	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
-	} else {
-		val, _ := v.(*Helper)
-		return val, nil
-	}
-}
+//func Get(prefix string) (*Helper, error) {
+//	if v, ok := store.Load(prefix); !ok {
+//		return nil, NotExists
+//	} else {
+//		val, _ := v.(*Helper)
+//		return val, nil
+//	}
+//}

@@ -23,23 +23,15 @@ func createOption() *Options {
 func TestNewOrm(t *testing.T) {
 	op := createOption()
 	Convey("test NewOrm", t, func() {
-		if h, err := NewOrm("test", op); err != nil {
-			t.Fatal(err)
-			return
-		} else {
-			hInstance, _ := NewOrm("test", op)
-			So(h, ShouldEqual, hInstance)
-
-			hOther, _ := NewOrm("test-other", op)
-			So(h, ShouldNotEqual, hOther)
-		}
+		_, err := NewOrm(op)
+		So(err, ShouldEqual, nil)
 	})
 }
 
 func TestNewWithRetry(t *testing.T) {
 	Convey("test NewWithRetry", t, func() {
 		op := createOption()
-		_, err := NewWithRetry("test", op, 0, 10*time.Second)
+		_, err := NewWithRetry(op, 0, 10*time.Second)
 		So(err, ShouldEqual, nil)
 	})
 }
