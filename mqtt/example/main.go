@@ -15,7 +15,7 @@ func main() {
 	op.SetUsername("pushCore")
 	op.SetPassword("pushCore")
 	op.OnConnect = nil
-	if c, err := mqtt.NewMqtt("abc", op); err != nil {
+	if c, err := mqtt.NewMqtt(op); err != nil {
 		log.Fatal(err)
 	} else {
 		//mqtt.Debug()
@@ -29,7 +29,7 @@ func main() {
 
 		log.Println("connect success")
 		c.GetClient().Disconnect(1)
-		if c, err = mqtt.NewMqtt("da", op); err != nil {
+		if c, err = mqtt.NewMqtt(op); err != nil {
 			log.Fatal("dddd")
 		}
 		c.Sub("sssa", 0, func(client MQTT.Client, message MQTT.Message) {

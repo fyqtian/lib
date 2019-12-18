@@ -34,14 +34,14 @@ var (
 	NotExists = errors.New("zap not exists")
 )
 
-func NewOrm(prefix string, op *Options) (*Helper, error) {
+func NewOrm(op *Options) (*Helper, error) {
 	var (
 		h   = &Helper{}
 		err error
 	)
-	if s, err := Get(prefix); err == nil {
-		return s, nil
-	}
+	//if s, err := Get(prefix); err == nil {
+	//	return s, nil
+	//}
 	h.options = op
 	db, err := gorm.Open("mysql", h.combineDSN())
 	if err != nil {
@@ -57,26 +57,27 @@ func NewOrm(prefix string, op *Options) (*Helper, error) {
 	h.DB = db
 	h.DB.DB().SetMaxOpenConns(op.MaxConn)
 	h.DB.DB().SetMaxIdleConns(op.IdelConn)
-	store.Store(prefix, h)
+	//store.Store(prefix, h)
 	return h, err
 }
 
-func Get(prefix string) (*Helper, error) {
-	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
-	} else {
-		val, _ := v.(*Helper)
-		return val, nil
-	}
-}
+//
+//func Get(prefix string) (*Helper, error) {
+//	if v, ok := store.Load(prefix); !ok {
+//		return nil, NotExists
+//	} else {
+//		val, _ := v.(*Helper)
+//		return val, nil
+//	}
+//}
 
-func NewWithRetry(prefix string, option *Options, attempts int, interval time.Duration) (*Helper, error) {
+func NewWithRetry(option *Options, attempts int, interval time.Duration) (*Helper, error) {
 	var (
 		h   *Helper
 		err error
 	)
 	utils.Retry(func() error {
-		if h, err = NewOrm(prefix, option); err != nil {
+		if h, err = NewOrm(option); err != nil {
 			return err
 		}
 		return nil

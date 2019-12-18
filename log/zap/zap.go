@@ -41,21 +41,21 @@ var (
 	NotExists = errors.New("zap not exists")
 )
 
-func Get(prefix string) (*Helper, error) {
-	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
-	} else {
-		val, _ := v.(*Helper)
-		return val, nil
-	}
-}
+//func Get(prefix string) (*Helper, error) {
+//	if v, ok := store.Load(prefix); !ok {
+//		return nil, NotExists
+//	} else {
+//		val, _ := v.(*Helper)
+//		return val, nil
+//	}
+//}
 
-func NewZap(prefix string, option *Options) (*Helper, error) {
+func NewZap(option *Options) (*Helper, error) {
 	var err error
 	var h = &Helper{}
-	if h, err := Get(prefix); err == nil {
-		return h, nil
-	}
+	//if h, err := Get(prefix); err == nil {
+	//	return h, nil
+	//}
 	h = &Helper{
 		options: option,
 	}
@@ -78,7 +78,7 @@ func NewZap(prefix string, option *Options) (*Helper, error) {
 	}
 
 	h.Logger = zap.New(zapcore.NewTee(arr...), zap.AddCaller())
-	store.Store(prefix, h)
+	//store.Store(prefix, h)
 	return h, err
 }
 

@@ -91,38 +91,38 @@ func (s *Helper) GetClient() MQTT.Client {
 	return s.client
 }
 
-func Get(prefix string) (*Helper, error) {
-	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
-	} else {
-		val, _ := v.(*Helper)
-		return val, nil
-	}
-}
+//func Get(prefix string) (*Helper, error) {
+//	if v, ok := store.Load(prefix); !ok {
+//		return nil, NotExists
+//	} else {
+//		val, _ := v.(*Helper)
+//		return val, nil
+//	}
+//}
 
-func NewMqtt(prefix string, option *Options) (*Helper, error) {
+func NewMqtt(option *Options) (*Helper, error) {
 	var (
 		h = &Helper{}
 	)
-	if s, err := Get(prefix); err == nil {
-		return s, err
-	}
+	//if s, err := Get(prefix); err == nil {
+	//	return s, err
+	//}
 	h.setOption(option)
 	if err := h.connect(); err != nil {
 		return nil, err
 	}
-	store.Store(prefix, h)
+	//store.Store(prefix, h)
 	return h, nil
 }
 
 //todo
-func NewWithRetry(prefix string, option *MQTT.ClientOptions, attempt int, interval time.Duration) (*Helper, error) {
+func NewWithRetry(option *MQTT.ClientOptions, attempt int, interval time.Duration) (*Helper, error) {
 	var (
 		h   *Helper
 		err error
 	)
 	utils.Retry(func() error {
-		if h, err = NewMqtt(prefix, option); err != nil {
+		if h, err = NewMqtt(option); err != nil {
 			return err
 		}
 		return nil

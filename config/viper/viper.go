@@ -21,22 +21,22 @@ type Options struct {
 	FileName   string
 }
 
-func Get(prefix string) (*Helper, error) {
-	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
-	} else {
-		val, _ := v.(*Helper)
-		return val, nil
-	}
-}
+//func Get(prefix string) (*Helper, error) {
+//	if v, ok := store.Load(prefix); !ok {
+//		return nil, NotExists
+//	} else {
+//		val, _ := v.(*Helper)
+//		return val, nil
+//	}
+//}
 
-func NewViper(prefix string, option *Options) (*Helper, error) {
+func NewViper(option *Options) (*Helper, error) {
 	var err error
 	var h = &Helper{}
 
-	if h, err := Get(prefix); err == nil {
-		return h, nil
-	}
+	//if h, err := Get(prefix); err == nil {
+	//	return h, nil
+	//}
 
 	h.options = option
 	v := viper.New()
@@ -52,6 +52,6 @@ func NewViper(prefix string, option *Options) (*Helper, error) {
 
 	v.WatchConfig()
 	h.Viper = v
-	store.Store(prefix, h)
+	//store.Store(prefix, h)
 	return h, nil
 }
