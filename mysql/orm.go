@@ -20,7 +20,7 @@ type Options struct {
 	Host     string
 	User     string
 	Passwd   string
-	Name     string
+	DbName   string
 	Charset  string
 	Port     string
 	Location string
@@ -91,7 +91,7 @@ func (s *Helper) combineDSN() string {
 		s.options.Passwd,
 		s.options.Host,
 		s.options.Port,
-		s.options.Name,
+		s.options.DbName,
 		s.options.Charset,
 		s.options.Location)
 	return dsn
