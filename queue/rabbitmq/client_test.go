@@ -75,3 +75,35 @@ func TestHelper_listen(t *testing.T) {
 
 	})
 }
+
+func TestNewWithRetry(t *testing.T) {
+	type args struct {
+		prefix   string
+		option   *Options
+		attempts int
+		interval time.Duration
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Helper
+		wantErr bool
+	}{
+		struct {
+			name    string
+			args    args
+			want    *Helper
+			wantErr bool
+		}{name: "testRetry", args: args{"testRetry", createOptions(), 10, time.Second}, want: nil, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := NewWithRetry(tt.args.prefix, tt.args.option, tt.args.attempts, tt.args.interval)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewWithRetry() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+		})
+	}
+}

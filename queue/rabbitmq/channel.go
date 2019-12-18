@@ -41,23 +41,18 @@ func (s *Channel) PushlishSample(exchange, route string, payload []byte) error {
 }
 
 func (s *Channel) Consumer(queue, consumer string, autoAck, exclusive, noLocal, noWait bool, args amqp.Table) (<-chan amqp.Delivery, error) {
-	deliveries := make(chan amqp.Delivery)
+	deliveries := make(chan amqp.Delivery, 8)
 
 	go func() {
 		for {
 			d, err := s.channel.Consume(queue, consumer, autoAck, exclusive, noLocal, noWait, args)
 			if err != nil {
-				time.Sleep(3 * time.Second)
+				time.Sleep(defaultConnectionTimeout)
 				continue
 			}
-
 			for msg := range d {
 				deliveries <- msg
 			}
-
-			// sleep before IsClose call. closed flag may not set before sleep.
-			time.Sleep(3 * time.Second)
-
 		}
 	}()
 

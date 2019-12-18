@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"fmt"
+	"github.com/fyqtian/lib/utils"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 	"log"
@@ -28,6 +29,7 @@ var (
 	defaultHeartbeat         = 10 * time.Second
 	defaultConnectionTimeout = 30 * time.Second
 	defaultLocale            = "en_US"
+	defaultReconnectTime     = 3 * time.Second
 )
 
 func (s *Options) url() string {
@@ -70,22 +72,27 @@ func (s *Helper) connect() (*amqp.Connection, error) {
 	return conn, nil
 }
 
+//todo
+//if someone use unnamed queue after reconnect ,it will cause error what not found queue
 func (s *Helper) Channel() (*Channel, error) {
 	if ch, err := s.conn.Channel(); err != nil {
 		return nil, err
 	} else {
 		tmp := &Channel{ch}
+		//todo
+		//is there exist error before register notify
 		go func() {
 			for {
-				reason, ok := <-ch.NotifyClose(make(chan *amqp.Error))
+				err, ok := <-ch.NotifyClose(make(chan *amqp.Error))
 				if !ok {
 					break
 				}
-				log.Println(reason)
+				log.Println(err)
 				for {
-					// wait 1s for connection reconnect
-					time.Sleep(3 * time.Second)
-					ch, err := s.conn.Channel()
+					// wait 3s for connection reconnect
+					time.Sleep(defaultReconnectTime)
+					var err error
+					ch, err = s.conn.Channel()
 					if err == nil {
 						tmp.channel = ch
 						break
@@ -94,25 +101,24 @@ func (s *Helper) Channel() (*Channel, error) {
 			}
 
 		}()
-
 		return tmp, nil
 	}
-
 }
+
 func (s *Helper) listen() {
 	for {
-		reason, ok := <-s.conn.NotifyClose(make(chan *amqp.Error))
-
+		err, ok := <-s.conn.NotifyClose(make(chan *amqp.Error))
 		if !ok {
 			break
 		}
-		log.Println(reason)
+		log.Println(err)
 
 		for {
-			time.Sleep(3 * time.Second)
+			time.Sleep(defaultReconnectTime)
 			conn, err := s.connect()
 			if err == nil {
 				s.conn = conn
+				break
 			}
 
 		}
@@ -137,6 +143,20 @@ func NewRabbitmq(prefix string, op *Options) (*Helper, error) {
 	go h.listen()
 	store.Store(prefix, h)
 	return h, nil
+}
+
+func NewWithRetry(prefix string, option *Options, attempts int, interval time.Duration) (*Helper, error) {
+	var (
+		h   *Helper
+		err error
+	)
+	utils.Retry(func() error {
+		if h, err = NewRabbitmq(prefix, option); err != nil {
+			return err
+		}
+		return nil
+	}, attempts, interval)
+	return h, err
 }
 
 func Get(prefix string) (*Helper, error) {
