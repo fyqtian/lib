@@ -2,8 +2,11 @@ package mqtt
 
 import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/fyqtian/lib/config"
+	"github.com/fyqtian/lib/config/viper"
 	"github.com/fyqtian/lib/utils"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"log"
 	"os"
 	"sync"
@@ -26,6 +29,8 @@ var (
 	store     = sync.Map{}
 	NotExists = errors.New("mqtt not exists")
 	LostError = errors.New("Connection has lost")
+	once      sync.Once
+	Mqtt      *Helper
 )
 
 func (s *Helper) setOption(options *Options) {
@@ -137,4 +142,39 @@ func NewOptions() *Options {
 func Debug() {
 	MQTT.DEBUG = log.New(os.Stdout, "", 0)
 	MQTT.ERROR = log.New(os.Stdout, "", 0)
+}
+
+func SampleOptions(prefix string, c config.Configer) *Options {
+	p := prefix + "."
+	op := NewOptions()
+	op.AddBroker(c.GetString(utils.CombineString(p, "host")))
+
+	if t := c.GetString(utils.CombineString(p, "clientid")); t == "" {
+		op.SetClientID(uuid.NewV4().String())
+	} else {
+		op.SetClientID(t)
+	}
+	op.SetUsername(c.GetString(utils.CombineString(p, "user")))
+	op.SetPassword(c.GetString(utils.CombineString(p, "passwd")))
+
+	if t := c.GetDuration(utils.CombineString(p, "keepalive")); t != 0 {
+		op.SetKeepAlive(t * time.Second)
+	}
+	if t := c.GetDuration(utils.CombineString(p, "pingtimeout")); t != 0 {
+		op.SetPingTimeout(t * time.Second)
+	}
+	op.SetAutoReconnect(c.GetBool(utils.CombineString(p, "reconnect")))
+	op.SetCleanSession(c.GetBool(utils.CombineString(p, "cleansession")))
+	return op
+}
+
+func DefaultMqtt() *Helper {
+	once.Do(func() {
+		var err error
+		Mqtt, err = NewWithRetry(SampleOptions("emq", viper.GetSingleton()), 10, 5*time.Second)
+		if err != nil {
+			panic(err)
+		}
+	})
+	return Mqtt
 }

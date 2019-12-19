@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -28,4 +29,12 @@ func Retry(f func() error, attempts int, interval time.Duration) error {
 		}
 	}
 	return errors.New(fmt.Sprintf("retry fail after %d try", attempts))
+}
+
+func CombineString(strs ...string) string {
+	var buffer bytes.Buffer
+	for _, v := range strs {
+		buffer.WriteString(v)
+	}
+	return buffer.String()
 }
