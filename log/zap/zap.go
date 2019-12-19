@@ -2,7 +2,10 @@ package zap
 
 import (
 	"errors"
+	"github.com/fyqtian/lib/config"
+	"github.com/fyqtian/lib/config/viper"
 	"github.com/fyqtian/lib/log/rotate"
+	"github.com/fyqtian/lib/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"net/http"
@@ -39,6 +42,8 @@ type Options struct {
 var (
 	store     = sync.Map{}
 	NotExists = errors.New("zap not exists")
+	once      sync.Once
+	Logger    *Helper
 )
 
 //func Get(prefix string) (*Helper, error) {
@@ -50,15 +55,35 @@ var (
 //	}
 //}
 
-func NewZap(option *Options) (*Helper, error) {
-	var err error
-	var h = &Helper{}
+func SampleOptions(prefix string, c config.Configer) *Options {
+	p := prefix + "."
+	return &Options{
+		FilePath:     c.GetString(utils.CombineString(p, "filepath")),
+		FileSize:     c.GetInt(utils.CombineString(p, "filesize")),
+		FileBackup:   c.GetInt(utils.CombineString(p, "filebackup")),
+		FileMaxAge:   c.GetInt(utils.CombineString(p, "filemaxage")),
+		FileCompress: c.GetBool(utils.CombineString(p, "filecompress")),
+		Debug:        c.GetBool(utils.CombineString(p, "debug")),
+		Level:        c.GetString(utils.CombineString(p, "level")),
+		Listen:       c.GetString(utils.CombineString(p, "listen")),
+	}
+}
+
+func DefaultZap() *Helper {
+	once.Do(func() {
+		Logger = NewZap(SampleOptions("log", viper.GetSingleton()))
+	})
+	return Logger
+}
+
+func NewZap(option *Options) *Helper {
+	var h = &Helper{
+		options: option,
+	}
 	//if h, err := Get(prefix); err == nil {
 	//	return h, nil
 	//}
-	h = &Helper{
-		options: option,
-	}
+
 	//日志滚动
 	rotate := rotate.NewRotate(h.options.FilePath, h.options.FileSize, h.options.FileBackup, h.options.FileMaxAge, h.options.FileCompress)
 	var arr []zapcore.Core
@@ -79,7 +104,7 @@ func NewZap(option *Options) (*Helper, error) {
 
 	h.Logger = zap.New(zapcore.NewTee(arr...), zap.AddCaller())
 	//store.Store(prefix, h)
-	return h, err
+	return h
 }
 
 //panic
@@ -116,7 +141,7 @@ func (s *Helper) logLever(l string) zapcore.Level {
 func (s *Helper) defaultEncoder() zapcore.Encoder {
 	c := zap.NewProductionEncoderConfig()
 	c.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString("2006-01-02 15:04:05")
+		enc.AppendString(t.Format("2006-01-02 15:04:05"))
 	}
 	return zapcore.NewJSONEncoder(c)
 }

@@ -3,12 +3,15 @@ package viper
 import (
 	"errors"
 	"github.com/spf13/viper"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
 var (
 	store     = sync.Map{}
 	NotExists = errors.New("config not exists")
+	V         *Helper
 )
 
 type Helper struct {
@@ -30,6 +33,23 @@ type Options struct {
 //	}
 //}
 
+func DefaultOptions() *Options {
+	path1, _ := filepath.Abs("config")
+	path2, _ := filepath.Abs("configs")
+	path3, _ := filepath.Abs(".")
+	return &Options{
+		ConfigPath: []string{path1, path2, path3},
+		FileName:   os.Getenv("RUN_TIME"),
+	}
+}
+func init() {
+	//ignore error
+	V, _ = NewViper(nil)
+}
+func GetSingleton() *Helper {
+	return V
+}
+
 func NewViper(option *Options) (*Helper, error) {
 	var err error
 	var h = &Helper{}
@@ -37,7 +57,9 @@ func NewViper(option *Options) (*Helper, error) {
 	//if h, err := Get(prefix); err == nil {
 	//	return h, nil
 	//}
-
+	if option == nil {
+		option = DefaultOptions()
+	}
 	h.options = option
 	v := viper.New()
 	v.SetConfigName(option.FileName)

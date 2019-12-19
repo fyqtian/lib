@@ -3,6 +3,8 @@ package mysql
 import (
 	"errors"
 	"fmt"
+	"github.com/fyqtian/lib/config"
+	"github.com/fyqtian/lib/config/viper"
 	"github.com/fyqtian/lib/utils"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
@@ -30,9 +32,43 @@ type Options struct {
 }
 
 var (
-	store     sync.Map
-	NotExists = errors.New("zap not exists")
+	store           sync.Map
+	NotExists       = errors.New("zap not exists")
+	once            sync.Once
+	Orm             *Helper
+	defaultLocation = "local"
+	defaultCharset  = "utf8"
+	defaultMaxConn  = 20
+	defaultIdelConn = 10
 )
+
+func SampleOptions(prefix string, c config.Configer) *Options {
+	p := prefix + "."
+	op := &Options{
+		Host:     c.GetString(utils.CombineString(p, "host")),
+		User:     c.GetString(utils.CombineString(p, "user")),
+		Passwd:   c.GetString(utils.CombineString(p, "passwd")),
+		DbName:   c.GetString(utils.CombineString(p, "dbname")),
+		Charset:  c.GetString(utils.CombineString(p, "charset")),
+		Port:     c.GetString(utils.CombineString(p, "port")),
+		Location: c.GetString(utils.CombineString(p, "location")),
+		MaxConn:  c.GetInt(utils.CombineString(p, "maxconn")),
+		IdelConn: c.GetInt(utils.CombineString(p, "idelconn")),
+		Debug:    c.GetBool(utils.CombineString(p, "debug")),
+	}
+	return op
+}
+
+func DefaultOrm() *Helper {
+	once.Do(func() {
+		var err error
+		Orm, err = NewWithRetry(SampleOptions("db", viper.GetSingleton()), 10, 5*time.Second)
+		if err != nil {
+			panic(err)
+		}
+	})
+	return Orm
+}
 
 func NewOrm(op *Options) (*Helper, error) {
 	var (
@@ -86,6 +122,19 @@ func NewWithRetry(option *Options, attempts int, interval time.Duration) (*Helpe
 }
 
 func (s *Helper) combineDSN() string {
+	if s.options.Location == "" {
+		s.options.Location = ""
+	}
+	if s.options.Charset == "" {
+		s.options.Charset = defaultCharset
+	}
+	if s.options.MaxConn == 0 {
+		s.options.MaxConn = defaultMaxConn
+	}
+	if s.options.IdelConn == 0 {
+		s.options.IdelConn = defaultIdelConn
+	}
+
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=true&loc=%s",
 		s.options.User,

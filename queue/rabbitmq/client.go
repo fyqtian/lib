@@ -2,6 +2,8 @@ package rabbitmq
 
 import (
 	"fmt"
+	"github.com/fyqtian/lib/config"
+	"github.com/fyqtian/lib/config/viper"
 	"github.com/fyqtian/lib/utils"
 	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
@@ -28,8 +30,11 @@ var (
 	LostError                = errors.New("Connection has lost")
 	defaultHeartbeat         = 10 * time.Second
 	defaultConnectionTimeout = 30 * time.Second
+	defaultHost              = "/"
 	defaultLocale            = "en_US"
 	defaultReconnectTime     = 3 * time.Second
+	once                     sync.Once
+	MQ                       *Helper
 )
 
 func (s *Options) url() string {
@@ -43,15 +48,20 @@ func (s *Options) createConfig() *amqp.Config {
 	}
 	if s.Vhost != "" {
 		config.Vhost = s.Vhost
+	} else {
+		config.Vhost = defaultHost
 	}
+
 	if s.Heartbeat != 0 {
 		config.Heartbeat = s.Heartbeat
 	}
+
 	if s.ConnectionTimeout != 0 {
 		config.Dial = amqp.DefaultDial(s.ConnectionTimeout)
 	} else {
 		config.Dial = amqp.DefaultDial(defaultConnectionTimeout)
 	}
+
 	if s.Locale != "" {
 		config.Locale = s.Locale
 	}
@@ -157,6 +167,32 @@ func NewWithRetry(option *Options, attempts int, interval time.Duration) (*Helpe
 		return nil
 	}, attempts, interval)
 	return h, err
+}
+
+func SampleOptions(prefix string, c config.Configer) *Options {
+	p := prefix + "."
+	op := &Options{
+		Host:              c.GetString(utils.CombineString(p, "host")),
+		Port:              c.GetString(utils.CombineString(p, "port")),
+		User:              c.GetString(utils.CombineString(p, "user")),
+		Passwd:            c.GetString(utils.CombineString(p, "passwd")),
+		Vhost:             c.GetString(utils.CombineString(p, "vhost")),
+		Heartbeat:         c.GetDuration(utils.CombineString(p, "hearbeat")) * time.Second,
+		ConnectionTimeout: c.GetDuration(utils.CombineString(p, "connectiontimeout")) * time.Second,
+		Locale:            c.GetString(utils.CombineString(p, "locale")),
+	}
+	return op
+}
+
+func DefaultMQ() *Helper {
+	once.Do(func() {
+		var err error
+		MQ, err = NewWithRetry(SampleOptions("mq", viper.GetSingleton()), 10, 5*time.Second)
+		if err != nil {
+			panic(err)
+		}
+	})
+	return MQ
 }
 
 //func Get(prefix string) (*Helper, error) {
