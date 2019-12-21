@@ -1,6 +1,9 @@
 package mysql
 
 import (
+	"bou.ke/monkey"
+	"fmt"
+	"github.com/fyqtian/lib/config/viper"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
@@ -34,4 +37,19 @@ func TestNewWithRetry(t *testing.T) {
 		_, err := NewWithRetry(op, 0, 10*time.Second)
 		So(err, ShouldEqual, nil)
 	})
+}
+
+func TestConvenienceOrm(t *testing.T) {
+	monkey.Patch(viper.GetSingleton, func() *viper.Helper {
+		op := viper.DefaultOptions()
+		op.FileName = "config"
+		v, err := viper.NewViper(op)
+		fmt.Println(err, v.GetString("test.host"))
+		return v
+	})
+	Convey("test  ConvenienceOrm", t, func() {
+		tmp := ConvenienceOrm("test")
+		So(tmp, ShouldNotEqual, nil)
+	})
+
 }
