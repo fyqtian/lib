@@ -63,7 +63,6 @@ func NewViper(option *Options) (*Helper, error) {
 	h.options = option
 	v := viper.New()
 	v.SetConfigName(option.FileName)
-
 	for _, path := range option.ConfigPath {
 		v.AddConfigPath(path)
 	}

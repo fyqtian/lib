@@ -67,6 +67,15 @@ func (c *Conn) GetRawConn() net.Conn {
 	return c.conn
 }
 
+func (c *Conn) setReadDeadline() {
+	c.conn.SetReadDeadline(time.Now().Add(c.srv.options.ReadDeadline))
+}
+
+func (c *Conn) Read(buf []byte, t time.Duration) (int, error) {
+	c.conn.SetReadDeadline(time.Now().Add(t))
+	return c.conn.Read(buf)
+}
+
 // Close closes the connection
 func (c *Conn) Close() {
 	c.closeOnce.Do(func() {
