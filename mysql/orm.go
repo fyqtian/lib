@@ -70,6 +70,26 @@ func DefaultOrm() *Helper {
 	return Orm
 }
 
+func Get(prefix string) (*Helper, error) {
+	if v, ok := store.Load(prefix); !ok {
+		return nil, NotExists
+	} else {
+		val, _ := v.(*Helper)
+		return val, nil
+	}
+}
+
+func ConvenienceOrm(prefix string) *Helper {
+	if s, err := Get(prefix); err == nil {
+		return s
+	}
+	obj, err := NewWithRetry(SampleOptions(prefix, viper.GetSingleton()), 99999, 5*time.Second)
+	if err != nil {
+		store.Store(prefix, obj)
+	}
+	return obj
+}
+
 func NewOrm(op *Options) (*Helper, error) {
 	var (
 		h   = &Helper{}
@@ -96,16 +116,6 @@ func NewOrm(op *Options) (*Helper, error) {
 	//store.Store(prefix, h)
 	return h, err
 }
-
-//
-//func Get(prefix string) (*Helper, error) {
-//	if v, ok := store.Load(prefix); !ok {
-//		return nil, NotExists
-//	} else {
-//		val, _ := v.(*Helper)
-//		return val, nil
-//	}
-//}
 
 func NewWithRetry(option *Options, attempts int, interval time.Duration) (*Helper, error) {
 	var (

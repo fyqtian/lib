@@ -3,8 +3,12 @@ module github.com/fyqtian/lib
 go 1.13
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/eclipse/paho.mqtt.golang v1.2.0
+	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/jinzhu/gorm v1.9.11
+	github.com/onsi/ginkgo v1.8.0 // indirect
+	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/smartystreets/goconvey v1.6.4
