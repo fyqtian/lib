@@ -1,0 +1,3 @@
+[log]
+debug = true
+filepath = "Runtime/zap.log"

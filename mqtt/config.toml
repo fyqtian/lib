@@ -1,0 +1,6 @@
+[emq]
+addr = "ubuntuVM:1883"
+user = "test"
+passwd = "test"
+cleansession = true
+clientid = "van"
