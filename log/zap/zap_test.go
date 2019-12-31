@@ -1,6 +1,8 @@
 package zap
 
 import (
+	"github.com/fyqtian/lib/config/viper"
+	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"net/http"
@@ -9,7 +11,12 @@ import (
 	"testing"
 )
 
-var prefix = "log"
+func TestSampleOptions(t *testing.T) {
+	Convey("test SampleOption", t, func() {
+		op := SampleOptions("log", viper.GetSingleton())
+		So(op.FilePath, ShouldEqual, viper.GetSingleton().GetString("log.filepath"))
+	})
+}
 
 func TestNewZap(t *testing.T) {
 	o := &Options{
@@ -23,14 +30,6 @@ func TestNewZap(t *testing.T) {
 		Listen:       "127.0.0.1:9999",
 	}
 	logger := NewZap(o)
-
-	//if loggerOther, err := NewZap(o); err != nil {
-	//	t.Fatal(err)
-	//} else {
-	//	if loggerOther != logger {
-	//		t.Fatal("singleton error")
-	//	}
-	//}
 
 	logger.Debug("debug", zap.String("name", "van"))
 	logger.Info("info", zap.String("name", "van"))
@@ -68,11 +67,9 @@ func TestNewZap(t *testing.T) {
 
 }
 
-//
-////如果单独测会通不过
-//func TestGet(t *testing.T) {
-//	Convey("test Get should return *helper after TestNewZap", t, func() {
-//		_, err := Get(prefix)
-//		So(err, ShouldEqual, nil)
-//	})
-//}
+func TestDefaultZap(t *testing.T) {
+	Convey("test DefaultZap", t, func() {
+		So(DefaultZap(), ShouldNotEqual, nil)
+
+	})
+}

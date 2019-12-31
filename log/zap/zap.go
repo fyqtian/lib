@@ -23,7 +23,7 @@ type Field = zap.Field
 type Options struct {
 	//存储位置
 	FilePath string
-	//每个轮转日志大小
+	//每个轮转日志大小 单位mb
 	FileSize int
 	//保存几份日志
 	FileBackup int
@@ -40,22 +40,12 @@ type Options struct {
 }
 
 var (
-	store     = sync.Map{}
-	NotExists = errors.New("zap not exists")
-	once      sync.Once
-	Logger    *Helper
+	ErrNotExists = errors.New("zap not exists")
+	once         sync.Once
+	Logger       *Helper
 )
 
-//func Get(prefix string) (*Helper, error) {
-//	if v, ok := store.Load(prefix); !ok {
-//		return nil, NotExists
-//	} else {
-//		val, _ := v.(*Helper)
-//		return val, nil
-//	}
-//}
-
-func SampleOptions(prefix string, c config.Configer) *Options {
+func loadFromConfiger(prefix string, c config.Configer) *Options {
 	p := prefix + "."
 	return &Options{
 		FilePath:     c.GetString(utils.CombineString(p, "filepath")),
@@ -69,6 +59,27 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 	}
 }
 
+func SampleOptions(prefix string, c config.Configer) *Options {
+	op := loadFromConfiger(prefix, c)
+
+	if op.FilePath == "" {
+		op.FilePath = "Runtime/runtime.log"
+	}
+
+	if op.FileSize == 0 {
+		op.FileSize = 128
+	}
+
+	if op.FileBackup == 0 {
+		op.FileBackup = 10
+	}
+
+	if op.FileMaxAge == 0 {
+		op.FileMaxAge = 7
+	}
+	return op
+}
+
 func DefaultZap() *Helper {
 	once.Do(func() {
 		Logger = NewZap(SampleOptions("log", viper.GetSingleton()))
@@ -80,9 +91,6 @@ func NewZap(option *Options) *Helper {
 	var h = &Helper{
 		options: option,
 	}
-	//if h, err := Get(prefix); err == nil {
-	//	return h, nil
-	//}
 
 	//日志滚动
 	rotate := rotate.NewRotate(h.options.FilePath, h.options.FileSize, h.options.FileBackup, h.options.FileMaxAge, h.options.FileCompress)
@@ -103,7 +111,6 @@ func NewZap(option *Options) *Helper {
 	}
 
 	h.Logger = zap.New(zapcore.NewTee(arr...), zap.AddCaller())
-	//store.Store(prefix, h)
 	return h
 }
 

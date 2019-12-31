@@ -19,24 +19,35 @@ type Helper struct {
 	client     MQTT.Client
 	options    *Options
 	topicStore sync.Map
+	topicChan  map[string]chan []byte
+	sync.Mutex
 }
+
 type topicInfo struct {
 	qos       byte
 	casllback MQTT.MessageHandler
 }
 
+type Client interface {
+	PubSimple(topic string, payload interface{}) error
+	SubSimple(string) (<-chan []byte, error)
+}
+
 var (
-	store     = sync.Map{}
-	NotExists = errors.New("mqtt not exists")
-	LostError = errors.New("Connection has lost")
-	once      sync.Once
-	Mqtt      *Helper
+	ErrNotExists   = errors.New("mqtt not exists")
+	ErrLostConnect = errors.New("Connection has lost")
+	once           sync.Once
+	Mqtt           *Helper
 )
 
 func (s *Helper) setOption(options *Options) {
 	if options.OnConnect == nil {
 		options.SetOnConnectHandler(s.onConnectHandler)
 	}
+	if options.OnConnectionLost == nil {
+		options.SetConnectionLostHandler(s.onConnectionLostHandler)
+	}
+
 	s.options = options
 }
 
@@ -49,19 +60,28 @@ func (s *Helper) connect() error {
 	return nil
 }
 
+func (s *Helper) onConnectionLostHandler(MQTT.Client, error) {
+
+}
+
+//注册处理重链后 sub topic
 func (s *Helper) onConnectHandler(client MQTT.Client) {
 	//todo
 	//重连了 自动订阅 可以改成按需 先这样处理了
 	s.topicStore.Range(func(key, value interface{}) bool {
-		val := value.(*topicInfo)
-		keyStr := key.(string)
-		s.Sub(keyStr, val.qos, val.casllback)
+		switch keyValue := key.(type) {
+		case *map[string]byte:
+			s.SubMultiple(*keyValue, value.(MQTT.MessageHandler))
+		case string:
+			val := value.(*topicInfo)
+			s.Sub(keyValue, val.qos, val.casllback)
+		}
 		return true
 	})
 }
 func (s *Helper) Pub(topic string, qos byte, retained bool, payload interface{}) error {
 	if !s.client.IsConnectionOpen() {
-		return LostError
+		return ErrLostConnect
 	}
 	if token := s.client.Publish(topic, qos, retained, payload); token.Wait() && token.Error() != nil {
 		return token.Error()
@@ -69,7 +89,7 @@ func (s *Helper) Pub(topic string, qos byte, retained bool, payload interface{})
 	return nil
 }
 
-func (s *Helper) PubSample(topic string, payload interface{}) error {
+func (s *Helper) PubSimple(topic string, payload interface{}) error {
 	return s.Pub(topic, 0, false, payload)
 }
 
@@ -79,13 +99,45 @@ func (s *Helper) PubSample(topic string, payload interface{}) error {
 // /sub/a 可以
 func (s *Helper) Sub(topic string, qos byte, callback MQTT.MessageHandler) error {
 	if !s.client.IsConnectionOpen() {
-		return LostError
+		return ErrLostConnect
 	}
 	if token := s.client.Subscribe(topic, qos, callback); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
 	s.topicStore.Store(topic, &topicInfo{qos, callback})
 	//断链后被重新订阅，chan不同
+	return nil
+}
+
+func (s *Helper) SubSimple(topic string) (<-chan []byte, error) {
+	s.Mutex.Lock()
+	defer s.Mutex.Unlock()
+	s.topicChan[topic] = make(chan []byte, 4)
+	err := s.Sub(topic, 0, func(client MQTT.Client, message MQTT.Message) {
+		s.topicChan[topic] <- message.Payload()
+	})
+	return s.topicChan[topic], err
+}
+
+func (s *Helper) SubMultiple(topics map[string]byte, callback MQTT.MessageHandler) error {
+	if !s.client.IsConnectionOpen() {
+		return ErrLostConnect
+	}
+	if token := s.client.SubscribeMultiple(topics, callback); token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
+	//todo
+	s.topicStore.Store(&topics, callback)
+	return nil
+}
+
+func (s *Helper) Unsubscribe(topics ...string) error {
+	if !s.client.IsConnectionOpen() {
+		return ErrLostConnect
+	}
+	if token := s.client.Unsubscribe(topics...); token.Wait() && token.Error() != nil {
+		return token.Error()
+	}
 	return nil
 }
 
@@ -96,27 +148,15 @@ func (s *Helper) GetClient() MQTT.Client {
 	return s.client
 }
 
-//func Get(prefix string) (*Helper, error) {
-//	if v, ok := store.Load(prefix); !ok {
-//		return nil, NotExists
-//	} else {
-//		val, _ := v.(*Helper)
-//		return val, nil
-//	}
-//}
-
 func NewMqtt(option *Options) (*Helper, error) {
 	var (
 		h = &Helper{}
 	)
-	//if s, err := Get(prefix); err == nil {
-	//	return s, err
-	//}
 	h.setOption(option)
 	if err := h.connect(); err != nil {
 		return nil, err
 	}
-	//store.Store(prefix, h)
+	h.topicChan = make(map[string]chan []byte, 8)
 	return h, nil
 }
 
@@ -147,7 +187,8 @@ func Debug() {
 func SampleOptions(prefix string, c config.Configer) *Options {
 	p := prefix + "."
 	op := NewOptions()
-	op.AddBroker(c.GetString(utils.CombineString(p, "host")))
+
+	op.AddBroker(c.GetString(utils.CombineString(p, "addr")))
 
 	if t := c.GetString(utils.CombineString(p, "clientid")); t == "" {
 		op.SetClientID(uuid.NewV4().String())
@@ -163,18 +204,20 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 	if t := c.GetDuration(utils.CombineString(p, "pingtimeout")); t != 0 {
 		op.SetPingTimeout(t * time.Second)
 	}
-	op.SetAutoReconnect(c.GetBool(utils.CombineString(p, "reconnect")))
+	//op.SetAutoReconnect(c.GetBool(utils.CombineString(p, "reconnect")))
 	op.SetCleanSession(c.GetBool(utils.CombineString(p, "cleansession")))
 	return op
 }
 
 func DefaultMqtt() *Helper {
 	once.Do(func() {
-		var err error
-		Mqtt, err = NewWithRetry(SampleOptions("emq", viper.GetSingleton()), 10, 5*time.Second)
-		if err != nil {
-			panic(err)
-		}
+		//var err error
+		//todo
+		//igonre error it will cause panic
+		Mqtt, _ = NewWithRetry(SampleOptions("emq", viper.GetSingleton()), 10, 5*time.Second)
+		//if err != nil {
+		//	panic(err)
+		//}
 	})
 	return Mqtt
 }

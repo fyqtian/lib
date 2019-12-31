@@ -7,10 +7,8 @@ import (
 )
 
 const (
-	defalutDeadline      = time.Second
-	defaultReadDeadline  = time.Second
-	defaultWriteDeadline = time.Second
-	defaultChanLimit     = 4
+	defalutDeadline  = 10 * time.Second
+	defaultChanLimit = 4
 )
 
 type Packet interface {
@@ -46,8 +44,6 @@ func SampleOptions(host, port string) *Options {
 		Host:                   host,
 		Port:                   port,
 		Deadline:               defalutDeadline,
-		ReadDeadline:           defaultReadDeadline,
-		WriteDeadline:          defaultWriteDeadline,
 		PacketSendChanLimit:    defaultChanLimit,
 		PacketReceiveChanLimit: defaultChanLimit,
 	}

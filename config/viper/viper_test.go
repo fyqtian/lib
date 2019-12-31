@@ -9,7 +9,7 @@ import (
 func TestNewViper(t *testing.T) {
 	Convey("test newviper", t, func() {
 		path, _ := filepath.Abs(".")
-		op := &Options{[]string{path}, "test-config"}
+		op := &Options{[]string{path}, "config"}
 		if config, err := NewViper(op); err != nil {
 			t.Fatal(err)
 			return
@@ -17,13 +17,13 @@ func TestNewViper(t *testing.T) {
 			So(config.GetString("info.name"), ShouldEqual, "viper")
 			So(config.GetInt("info.age"), ShouldEqual, 16)
 			So(config.GetBool("info.isMan"), ShouldEqual, true)
-
-			//configInstance, _ := NewViper(op)
-			//So(config, ShouldEqual, configInstance)
-			//
-			//configOther, _ := NewViper(op)
-			//So(config, ShouldNotEqual, configOther)
-
 		}
+	})
+}
+
+func TestGetSingleton(t *testing.T) {
+	Convey("test newviper", t, func() {
+		So(GetSingleton(), ShouldNotEqual, nil)
+		So(GetSingleton().GetString("info.name"), ShouldEqual, "viper")
 	})
 }
