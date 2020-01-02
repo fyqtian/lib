@@ -77,7 +77,7 @@ func (s *Server) Listener() (*net.TCPListener, error) {
 func (s *Server) Start() error {
 	listen, err := s.Listener()
 	if err != nil {
-		return nil
+		return err
 	}
 	s.waitGroup.Add(1)
 	defer func() {
