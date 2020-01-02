@@ -24,25 +24,27 @@ type Options struct {
 	Locale            string
 }
 
-var (
-	store                    = sync.Map{}
-	NotExists                = errors.New("rabbitmq not exists")
-	LostError                = errors.New("Connection has lost")
+const (
 	defaultHeartbeat         = 10 * time.Second
 	defaultConnectionTimeout = 30 * time.Second
 	defaultHost              = "/"
 	defaultLocale            = "en_US"
 	defaultReconnectTime     = 3 * time.Second
-	once                     sync.Once
-	MQ                       *Helper
+)
+
+var (
+	ErrNotExists      = errors.New("rabbitmq not exists")
+	ErrLostConnection = errors.New("Connection has lost")
+	once              sync.Once
+	MQ                *Helper
 )
 
 func (s *Options) url() string {
 	return fmt.Sprintf("amqp://%s:%s@%s:%s", url.QueryEscape(s.User), url.QueryEscape(s.Passwd), s.Host, s.Port)
 }
 
-func (s *Options) createConfig() *amqp.Config {
-	config := &amqp.Config{
+func (s *Options) createConfig() amqp.Config {
+	config := amqp.Config{
 		Heartbeat: defaultHeartbeat,
 		Locale:    defaultLocale,
 	}
@@ -69,14 +71,15 @@ func (s *Options) createConfig() *amqp.Config {
 }
 
 type Helper struct {
-	options *Options
-	conn    *amqp.Connection
+	options                  *Options
+	conn                     *amqp.Connection
+	lostConnectionNotifyChan chan error
 }
 
 func (s *Helper) connect() (*amqp.Connection, error) {
 	var conn *amqp.Connection
 	var err error
-	if conn, err = amqp.DialConfig(s.options.url(), *s.options.createConfig()); err != nil {
+	if conn, err = amqp.DialConfig(s.options.url(), s.options.createConfig()); err != nil {
 		return nil, err
 	}
 	return conn, nil
@@ -98,6 +101,10 @@ func (s *Helper) Channel() (*Channel, error) {
 					break
 				}
 				log.Println(err)
+				select {
+				case s.lostConnectionNotifyChan <- err:
+				default:
+				}
 				for {
 					// wait 3s for connection reconnect
 					time.Sleep(defaultReconnectTime)
@@ -121,6 +128,12 @@ func (s *Helper) listen() {
 		if !ok {
 			break
 		}
+		//todo
+		select {
+		case s.lostConnectionNotifyChan <- err:
+		default:
+		}
+
 		log.Println(err)
 
 		for {
@@ -135,23 +148,23 @@ func (s *Helper) listen() {
 	}
 }
 
+func (s *Helper) ListenLostConnection() <-chan error {
+	return s.lostConnectionNotifyChan
+}
+
 func NewRabbitmq(op *Options) (*Helper, error) {
 	var (
 		h    = &Helper{}
 		err  error
 		conn *amqp.Connection
 	)
-	//if s, err := Get(prefix); err == nil {
-	//	return s, nil
-	//}
 	h.options = op
-
 	if conn, err = h.connect(); err != nil {
 		return nil, err
 	}
 	h.conn = conn
+	h.lostConnectionNotifyChan = make(chan error)
 	go h.listen()
-	//store.Store(prefix, h)
 	return h, nil
 }
 
@@ -186,20 +199,11 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 
 func DefaultMQ() *Helper {
 	once.Do(func() {
-		var err error
-		MQ, err = NewWithRetry(SampleOptions("mq", viper.GetSingleton()), 10, 5*time.Second)
-		if err != nil {
-			panic(err)
-		}
+		//var err error
+		MQ, _ = NewWithRetry(SampleOptions("mq", viper.GetSingleton()), 10, 5*time.Second)
+		//if err != nil {
+		//	panic(err)
+		//}
 	})
 	return MQ
 }
-
-//func Get(prefix string) (*Helper, error) {
-//	if v, ok := store.Load(prefix); !ok {
-//		return nil, NotExists
-//	} else {
-//		val, _ := v.(*Helper)
-//		return val, nil
-//	}
-//}

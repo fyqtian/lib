@@ -1,4 +1,4 @@
-package redis
+package goredis
 
 import (
 	"errors"
@@ -18,23 +18,45 @@ type Helper struct {
 type Options = redis.Options
 
 var (
-	once          sync.Once
-	Redis         *Helper
-	SertNxErrFail = errors.New("setnx fail")
+	once         sync.Once
+	Redis        *Helper
+	ErrSetNxFail = errors.New("setnx fail")
 )
 
-func SampleOptions(prefix string, c config.Configer) *Options {
+const (
+	defaultMaxRetries   = 10
+	defaultTimeOut      = 5 * time.Second
+	defaultPoolSize     = 10
+	defaultMinIdleConns = 5
+)
+
+func loadFromConfiger(prefix string, c config.Configer) *Options {
 	p := prefix + "."
-	op := &redis.Options{
-		Addr:       c.GetString(utils.CombineString(p, "addr")),
-		Password:   c.GetString(utils.CombineString(p, "passwd")),
-		DB:         c.GetInt(utils.CombineString(p, "index")),
-		MaxRetries: c.GetInt(utils.CombineString(p, "retry")),
-		//MinRetryBackoff: c.GetDuration(utils.CombineString(p, "minretrytime")),
-		//MaxRetryBackoff: c.GetDuration(utils.CombineString(p, "maxretrytime")),
+	return &redis.Options{
+		Addr:         c.GetString(utils.CombineString(p, "addr")),
+		Password:     c.GetString(utils.CombineString(p, "passwd")),
+		DB:           c.GetInt(utils.CombineString(p, "index")),
+		MaxRetries:   c.GetInt(utils.CombineString(p, "retry")),
 		DialTimeout:  c.GetDuration(utils.CombineString(p, "dialtimeout")) * time.Second,
 		PoolSize:     c.GetInt(utils.CombineString(p, "poolsize")),
 		MinIdleConns: c.GetInt(utils.CombineString(p, "minidelconn")),
+	}
+
+}
+
+func SampleOptions(prefix string, c config.Configer) *Options {
+	op := loadFromConfiger(prefix, c)
+	if op.MaxRetries == 0 {
+		op.MaxRetries = defaultMaxRetries
+	}
+	if op.DialTimeout == 0 {
+		op.DialTimeout = defaultTimeOut
+	}
+	if op.PoolSize == 0 {
+		op.PoolSize = defaultPoolSize
+	}
+	if op.MinIdleConns == 0 {
+		op.MinIdleConns = defaultMinIdleConns
 	}
 	return op
 }
@@ -96,7 +118,7 @@ func (s *SpinLocker) Lock() error {
 			return err
 		}
 		if !ok {
-			return SertNxErrFail
+			return ErrSetNxFail
 		}
 	} else {
 		//如果持有当前锁 刷新过期时间

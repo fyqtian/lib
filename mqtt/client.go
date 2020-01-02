@@ -21,6 +21,7 @@ type Helper struct {
 	topicStore sync.Map
 	topicChan  map[string]chan []byte
 	sync.Mutex
+	lostConnectionNotifyChan chan error
 }
 
 type topicInfo struct {
@@ -44,9 +45,7 @@ func (s *Helper) setOption(options *Options) {
 	if options.OnConnect == nil {
 		options.SetOnConnectHandler(s.onConnectHandler)
 	}
-	if options.OnConnectionLost == nil {
-		options.SetConnectionLostHandler(s.onConnectionLostHandler)
-	}
+	options.SetConnectionLostHandler(s.onConnectionLostHandler)
 
 	s.options = options
 }
@@ -60,8 +59,15 @@ func (s *Helper) connect() error {
 	return nil
 }
 
-func (s *Helper) onConnectionLostHandler(MQTT.Client, error) {
+func (s *Helper) ListenLostConnection() <-chan error {
+	return s.lostConnectionNotifyChan
+}
 
+func (s *Helper) onConnectionLostHandler(c MQTT.Client, err error) {
+	select {
+	case s.lostConnectionNotifyChan <- err:
+	default:
+	}
 }
 
 //注册处理重链后 sub topic
@@ -157,6 +163,7 @@ func NewMqtt(option *Options) (*Helper, error) {
 		return nil, err
 	}
 	h.topicChan = make(map[string]chan []byte, 8)
+	h.lostConnectionNotifyChan = make(chan error)
 	return h, nil
 }
 

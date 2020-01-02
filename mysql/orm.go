@@ -20,31 +20,34 @@ type Helper struct {
 
 type Options struct {
 	Host     string
+	Port     string
 	User     string
 	Passwd   string
 	DbName   string
 	Charset  string
-	Port     string
 	Location string
 	MaxConn  int
 	IdelConn int
 	Debug    bool
 }
 
-var (
-	store           sync.Map
-	NotExists       = errors.New("zap not exists")
-	once            sync.Once
-	Orm             *Helper
+const (
 	defaultLocation = "local"
 	defaultCharset  = "utf8"
 	defaultMaxConn  = 20
 	defaultIdelConn = 10
 )
 
-func SampleOptions(prefix string, c config.Configer) *Options {
+var (
+	store        sync.Map
+	ErrNotExists = errors.New("orm not exists")
+	once         sync.Once
+	Orm          *Helper
+)
+
+func loadFromConfiger(prefix string, c config.Configer) *Options {
 	p := prefix + "."
-	op := &Options{
+	return &Options{
 		Host:     c.GetString(utils.CombineString(p, "host")),
 		User:     c.GetString(utils.CombineString(p, "user")),
 		Passwd:   c.GetString(utils.CombineString(p, "passwd")),
@@ -56,23 +59,40 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 		IdelConn: c.GetInt(utils.CombineString(p, "idelconn")),
 		Debug:    c.GetBool(utils.CombineString(p, "debug")),
 	}
+}
+
+func SampleOptions(prefix string, c config.Configer) *Options {
+	op := loadFromConfiger(prefix, c)
+	if op.Location == "" {
+		op.Location = defaultLocation
+	}
+	if op.Charset == "" {
+		op.Charset = defaultCharset
+	}
+	if op.MaxConn == 0 {
+		op.MaxConn = defaultMaxConn
+	}
+
+	if op.IdelConn == 0 {
+		op.IdelConn = defaultIdelConn
+	}
 	return op
 }
 
 func DefaultOrm() *Helper {
 	once.Do(func() {
-		var err error
-		Orm, err = NewWithRetry(SampleOptions("db", viper.GetSingleton()), 10, 5*time.Second)
-		if err != nil {
-			panic(err)
-		}
+		//var err error
+		Orm, _ = NewWithRetry(SampleOptions("db", viper.GetSingleton()), 10, 5*time.Second)
+		//if err != nil {
+		//	panic(err)
+		//}
 	})
 	return Orm
 }
 
 func Get(prefix string) (*Helper, error) {
 	if v, ok := store.Load(prefix); !ok {
-		return nil, NotExists
+		return nil, ErrNotExists
 	} else {
 		val, _ := v.(*Helper)
 		return val, nil

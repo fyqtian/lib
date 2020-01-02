@@ -69,7 +69,7 @@ func TestHelper_listen(t *testing.T) {
 		helper, err := NewRabbitmq(createOptions())
 		So(err, ShouldEqual, nil)
 		//restart rabbitmq by manual
-		time.Sleep(20e9)
+		//time.Sleep(20e9)
 		_, err = helper.Channel()
 		So(err, ShouldEqual, nil)
 
@@ -106,4 +106,17 @@ func TestNewWithRetry(t *testing.T) {
 
 		})
 	}
+}
+
+func TestHelper_ListenLostConnection(t *testing.T) {
+	Convey("test reconnect", t, func() {
+		//helper, err := NewRabbitmq(createOptions())
+		//So(err, ShouldEqual, nil)
+		//ch, _ := helper.Channel()
+		//ch.QueueSample("abc", false)
+		//for val := range helper.ListenLostConnection() {
+		//	fmt.Println(val)
+		//}
+
+	})
 }

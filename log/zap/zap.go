@@ -39,6 +39,12 @@ type Options struct {
 	Listen string
 }
 
+const (
+	defaultFilesize   = 128
+	defaultFileback   = 7
+	defaultFilemaxage = 7
+)
+
 var (
 	ErrNotExists = errors.New("zap not exists")
 	once         sync.Once
@@ -67,15 +73,15 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 	}
 
 	if op.FileSize == 0 {
-		op.FileSize = 128
+		op.FileSize = defaultFilesize
 	}
 
 	if op.FileBackup == 0 {
-		op.FileBackup = 10
+		op.FileBackup = defaultFileback
 	}
 
 	if op.FileMaxAge == 0 {
-		op.FileMaxAge = 7
+		op.FileMaxAge = defaultFilemaxage
 	}
 	return op
 }

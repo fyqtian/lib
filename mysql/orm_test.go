@@ -11,16 +11,12 @@ import (
 
 func createOption() *Options {
 	return &Options{
-		Host:     "ubuntuVM",
-		User:     "root",
-		Passwd:   "123456",
-		DbName:   "test",
-		Charset:  "utf8",
-		Port:     "3306",
-		Location: "Local",
-		MaxConn:  20,
-		IdelConn: 10,
-		Debug:    true,
+		Host:   "ubuntuVM",
+		User:   "root",
+		Passwd: "123456",
+		DbName: "test",
+		Port:   "3306",
+		Debug:  true,
 	}
 }
 func TestNewOrm(t *testing.T) {

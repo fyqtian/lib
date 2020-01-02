@@ -100,3 +100,15 @@ func TestHelper_SubSimple(t *testing.T) {
 		So(ch, ShouldNotEqual, nil)
 	})
 }
+
+func TestHelper_ListenLostConnection(t *testing.T) {
+	Convey("test ListenLostConnection", t, func() {
+		//c, err := NewMqtt(createOption())
+		//So(err, ShouldEqual, nil)
+		//for {
+		//	if val, ok := <-c.lostConnectionNotifyChan; ok {
+		//		fmt.Println(val, ok)
+		//	}
+		//}
+	})
+}
