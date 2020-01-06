@@ -2,3 +2,8 @@
 name = "viper"
 age = 16
 isMan = true
+
+[test]
+key = "config info"
+value = "config value"
+age = 22
