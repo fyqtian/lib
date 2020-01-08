@@ -39,6 +39,7 @@ func TestHelper_GetString(t *testing.T) {
 
 		v.ReadFromEnv()
 		So(v.GetString(key), ShouldEqual, value)
+
 	})
 }
 

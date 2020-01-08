@@ -8,3 +8,8 @@ type Configer interface {
 	GetBool(string) bool
 	GetDuration(string) time.Duration
 }
+
+type ConfigerSlice interface {
+	Configer
+	GetStringSlice(string) []string
+}

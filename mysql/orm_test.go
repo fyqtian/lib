@@ -1,8 +1,6 @@
 package mysql
 
 import (
-	"bou.ke/monkey"
-	"fmt"
 	"github.com/fyqtian/lib/config/viper"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -10,14 +8,7 @@ import (
 )
 
 func createOption() *Options {
-	return &Options{
-		Host:   "ubuntuVM",
-		User:   "root",
-		Passwd: "123456",
-		DbName: "test",
-		Port:   "3306",
-		Debug:  true,
-	}
+	return SampleOptions("db", viper.GetSingleton())
 }
 func TestNewOrm(t *testing.T) {
 	op := createOption()
@@ -36,15 +27,8 @@ func TestNewWithRetry(t *testing.T) {
 }
 
 func TestConvenienceOrm(t *testing.T) {
-	monkey.Patch(viper.GetSingleton, func() *viper.Helper {
-		op := viper.DefaultOptions()
-		op.FileName = "config"
-		v, err := viper.NewViper(op)
-		fmt.Println(err, v.GetString("test.host"))
-		return v
-	})
 	Convey("test  ConvenienceOrm", t, func() {
-		tmp := ConvenienceOrm("test")
+		tmp := ConvenienceOrm("db")
 		So(tmp, ShouldNotEqual, nil)
 	})
 

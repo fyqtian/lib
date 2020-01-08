@@ -14,6 +14,7 @@ import (
 func TestSampleOptions(t *testing.T) {
 	Convey("test SampleOption", t, func() {
 		op := SampleOptions("log", viper.GetSingleton())
+		So(op.FilePath, ShouldEqual, "Runtime/zap.log")
 		So(op.FilePath, ShouldEqual, viper.GetSingleton().GetString("log.filepath"))
 	})
 }

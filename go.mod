@@ -11,7 +11,9 @@ require (
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid v1.2.0
+	github.com/segmentio/kafka-go v0.3.4
 	github.com/smartystreets/goconvey v1.6.4
+	github.com/spf13/cast v1.3.0
 	github.com/spf13/viper v1.6.1
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	go.uber.org/zap v1.13.0

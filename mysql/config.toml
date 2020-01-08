@@ -1,7 +1,0 @@
-[test]
-host = "ubuntuVM"                #数据库连接地址
-dbname = "iot_posmq"                 #数据库名称
-user = "root"           #数据库用户名
-passwd = "123456"   #数据库密码
-port = "3306"                     #数据库端口号
-debug = true

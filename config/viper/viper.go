@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/viper"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -30,8 +31,10 @@ func DefaultOptions() *Options {
 	path1, _ := filepath.Abs("config")
 	path2, _ := filepath.Abs("configs")
 	path3, _ := filepath.Abs(".")
+	//for unit test
+	_, filename, _, _ := runtime.Caller(1)
 	return &Options{
-		ConfigPath: []string{path1, path2, path3},
+		ConfigPath: []string{path1, path2, path3, filepath.Dir(filepath.Dir(filename)) + "s"},
 		FileName:   os.Getenv("RUN_TIME"),
 	}
 }

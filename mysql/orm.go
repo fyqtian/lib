@@ -32,7 +32,7 @@ type Options struct {
 }
 
 const (
-	defaultLocation = "local"
+	defaultLocation = "Local"
 	defaultCharset  = "utf8"
 	defaultMaxConn  = 20
 	defaultIdelConn = 10
