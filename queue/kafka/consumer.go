@@ -22,7 +22,6 @@ type ConsumerHelper struct {
 }
 
 const (
-	defaultGroupID  = "go-kafka-client"
 	defaultMinbytes = 1e3
 	defaultMaxBytes = 100e6
 )
@@ -43,12 +42,13 @@ func loadConsumerFromConfiger(prefix string, c config.ConfigerSlice) *ConsumerOp
 
 func SampleConsumerOptions(prefix string, c config.ConfigerSlice) *ConsumerOptions {
 	op := loadConsumerFromConfiger(prefix, c)
-	if op.MinBytes == 0 {
-		op.MinBytes = defaultMinbytes
-	}
-	if op.MaxBytes == 0 {
-		op.MaxBytes = defaultMaxBytes
-	}
+	//if op.MinBytes == 0 {
+	//	op.MinBytes = defaultMinbytes
+	//}
+	//if op.MaxBytes == 0 {
+	//	op.MaxBytes = defaultMaxBytes
+	//}
+
 	return op
 }
 
@@ -59,22 +59,52 @@ func NewConsumer(options *ConsumerOptions) *ConsumerHelper {
 	return h
 }
 
-type MessageCallback func(kafka.Message, error) error
+type ReaddCallback func(kafka.Message, error)
+type FetchCallback func(kafka.Message, error) error
 
-func (s *ConsumerHelper) Read(f MessageCallback) {
+func (s *ConsumerHelper) Read(f ReaddCallback, async bool) error {
+	return s.ReadTimeOut(f, async, 0)
+}
+
+func (s *ConsumerHelper) ReadTimeOut(f ReaddCallback, async bool, timeout time.Duration) error {
 	ctx := context.Background()
 	for {
+		if timeout != 0 {
+			//ignore cancel func
+			ctx, _ = context.WithTimeout(ctx, timeout)
+		}
 		m, err := s.ReadMessage(ctx)
-		f(m, err)
+		if err != nil {
+			return err
+		}
+		if async {
+			go func() {
+				defer recover()
+				f(m, err)
+			}()
+		} else {
+			f(m, err)
+		}
 	}
 }
 
-func (s *ConsumerHelper) Fetch(f MessageCallback) {
+func (s *ConsumerHelper) Fetch(f FetchCallback) error {
+	return s.FetchTimeout(f, 0)
+}
+
+//it will
+func (s *ConsumerHelper) FetchTimeout(f FetchCallback, timeout time.Duration) error {
 	ctx := context.Background()
 	for {
+		if timeout != 0 {
+			ctx, _ = context.WithTimeout(ctx, timeout)
+		}
 		m, err := s.Reader.FetchMessage(ctx)
+		if err != nil {
+			return err
+		}
 		rsErr := f(m, err)
-		if err != nil && rsErr != nil {
+		if rsErr == nil {
 			s.Reader.CommitMessages(ctx, m)
 		}
 	}

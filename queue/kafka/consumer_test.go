@@ -1,11 +1,11 @@
 package kafka
 
 import (
-	"errors"
 	"fmt"
 	"github.com/fyqtian/lib/config/viper"
 	"github.com/segmentio/kafka-go"
 	. "github.com/smartystreets/goconvey/convey"
+	"log"
 	"testing"
 	"time"
 )
@@ -26,25 +26,29 @@ func TestDefaultConsumer(t *testing.T) {
 
 func TestConsumerHelper_Read(t *testing.T) {
 	Convey("test consumer read", t, func() {
-		go func() {
-			DefaultConsumer().Read(func(message kafka.Message, e error) error {
-				fmt.Println(string(message.Value), e)
-				return nil
-			})
-		}()
-		time.Sleep(600e9)
+		DefaultConsumer().Read(func(message kafka.Message, e error) {
+			log.Println(string(message.Value), e)
+		}, false)
+	})
+}
+
+func TestConsumerHelper_ReadTimeOut(t *testing.T) {
+	Convey("test consumer fetch", t, func() {
+		DefaultConsumer().ReadTimeOut(func(message kafka.Message, e error) {
+			log.Println(string(message.Value), e, message.Partition, message.Offset)
+		}, false, time.Second*20)
+
 	})
 }
 
 func TestConsumerHelper_Fetch(t *testing.T) {
 	Convey("test consumer fetch", t, func() {
-		go func() {
-			DefaultConsumer().Fetch(func(message kafka.Message, e error) error {
-				fmt.Println(string(message.Value), e, message.Partition, message.Offset)
-				return errors.New("ttt")
-			})
-		}()
+		fmt.Println(123123)
+		fmt.Printf("%#v\n", DefaultConsumer().options)
+		fmt.Println(DefaultConsumer().Fetch(func(message kafka.Message, e error) error {
+			fmt.Println(string(message.Value), e, message.Partition, message.Offset)
+			return nil
+		}), 5555)
 
-		time.Sleep(600e9)
 	})
 }

@@ -4,15 +4,16 @@ filepath = "Runtime/zap.log"
 
 [kafka-producer]
 brokers = ["ubuntuvm:9092"]
-topic = "test1"
-compression = true
+topic = "test"
+compression = false
 async = false
 
 [kafka-consumer]
 brokers = ["ubuntuvm:9092"]
-topic = "test1"
+topic = "test"
 groupId = "config-group-id"
-minbytes = 100
+minbytes = 1
+#maxwait = 100
 partition = 0
 
 [emq]

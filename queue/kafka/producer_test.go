@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/fyqtian/lib/config/viper"
 	. "github.com/smartystreets/goconvey/convey"
+	"log"
 	"testing"
 )
 
@@ -26,9 +27,8 @@ func TestDefaultProducer(t *testing.T) {
 
 func TestProducerHelper_Push(t *testing.T) {
 	Convey("test default push", t, func() {
-
 		for i := 10; i > 0; i-- {
-			fmt.Println(i)
+			log.Println(i)
 			err := DefaultProducer().Push(PushMessage{[]byte(fmt.Sprintf("i%d", i)), []byte("dddd")})
 			So(err, ShouldEqual, nil)
 		}

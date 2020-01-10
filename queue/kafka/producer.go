@@ -21,15 +21,10 @@ type ProducerHelper struct {
 }
 
 var (
-	ErrNotExists      = errors.New("kafka not exists")
-	ErrLostConnection = errors.New("Connection has lost")
-	producerOnce      sync.Once
-	Producer          *ProducerHelper
-)
-
-const (
-	defaultBroker = "127.0.0.1:9092"
-	defaultTopic  = "test"
+	ErrNotExists = errors.New("kafka not exists")
+	ErrPushData  = errors.New("push data length is zero")
+	producerOnce sync.Once
+	Producer     *ProducerHelper
 )
 
 func balancer(b string) kafka.Balancer {
@@ -54,7 +49,7 @@ func loadFromConfiger(prefix string, c config.ConfigerSlice) *ProducerOptions {
 		Topic:         c.GetString(utils.CombineString(p, "topic")),
 		MaxAttempts:   c.GetInt(utils.CombineString(p, "maxattempts")),
 		QueueCapacity: c.GetInt(utils.CombineString(p, "queuecapacity")),
-		BatchTimeout:  c.GetDuration(utils.CombineString(p, "batchtimeout")) * time.Second,
+		BatchTimeout:  c.GetDuration(utils.CombineString(p, "batchtimeout")) * time.Millisecond,
 		Async:         c.GetBool(utils.CombineString(p, "async")),
 		RequiredAcks:  c.GetInt(utils.CombineString(p, "ack")),
 		Balancer:      balancer(c.GetString(utils.CombineString(p, "balancer"))),
@@ -63,12 +58,6 @@ func loadFromConfiger(prefix string, c config.ConfigerSlice) *ProducerOptions {
 
 func SampleProducerOptions(prefix string, c config.ConfigerSlice) *ProducerOptions {
 	op := loadFromConfiger(prefix, c)
-	if op.Brokers == nil {
-		op.Brokers = []string{defaultBroker}
-	}
-	if op.Topic == "" {
-		op.Topic = defaultTopic
-	}
 
 	if c.GetBool(utils.CombineString(prefix, ".", "compression")) {
 		op.CompressionCodec = snappy.NewCompressionCodec()
@@ -89,8 +78,13 @@ type PushMessage struct {
 }
 
 func (s *ProducerHelper) Push(data ...PushMessage) error {
+	_, err := s.PushTimeout(0, data...)
+	return err
+}
+
+func (s *ProducerHelper) PushTimeout(timeout time.Duration, data ...PushMessage) (context.CancelFunc, error) {
 	if len(data) == 0 {
-		return nil
+		return nil, ErrPushData
 	}
 	tmp := make([]kafka.Message, len(data))
 	i := 0
@@ -98,7 +92,12 @@ func (s *ProducerHelper) Push(data ...PushMessage) error {
 		tmp[i] = kafka.Message{Key: m.Key, Value: m.Value}
 		i++
 	}
-	return s.Writer.WriteMessages(context.Background(), tmp...)
+	var ctx = context.Background()
+	var cancel context.CancelFunc
+	if timeout > 0 {
+		ctx, cancel = context.WithTimeout(context.Background(), timeout)
+	}
+	return cancel, s.Writer.WriteMessages(ctx, tmp...)
 }
 
 func DefaultProducer() *ProducerHelper {

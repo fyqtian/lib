@@ -33,9 +33,12 @@ func DefaultOptions() *Options {
 	path3, _ := filepath.Abs(".")
 	//for unit test
 	_, filename, _, _ := runtime.Caller(1)
+	// lib/configs/
+	path4 := filepath.Dir(filepath.Dir(filename)) + "s"
 	return &Options{
-		ConfigPath: []string{path1, path2, path3, filepath.Dir(filepath.Dir(filename)) + "s"},
-		FileName:   os.Getenv("RUN_TIME"),
+		ConfigPath: []string{path1, path2, path3, path4},
+		//default config
+		FileName: os.Getenv("RUN_TIME"),
 	}
 }
 func init() {
