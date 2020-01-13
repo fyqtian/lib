@@ -5,22 +5,25 @@ filepath = "Runtime/zap.log"
 [kafka-producer]
 brokers = ["ubuntuvm:9092"]
 topic = "test"
-compression = false
-ack = 1
+compressionType = 2
+ack = 0
+debug = true
+clientid = "test-producer"
 
 [kafka-consumer]
 brokers = ["ubuntuvm:9092"]
 topics = ["test","test1"]
 groupId = "config-group-id"
 version = "2.2.1"
-
+debug = true
+clientid = "test-consumer"
 
 [emq]
 addr = "ubuntuVM:1883"
 user = "test"
 passwd = "test"
 cleansession = false
-clientid = ""
+clientid = "test111"
 
 [db]
 host = "ubuntuVM"                #数据库连接地址

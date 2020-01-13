@@ -10,9 +10,13 @@ import (
 	"time"
 )
 
+type Message = sarama.ProducerMessage
+
 var (
-	producerOnce   sync.Once
-	producerHelper *Producer
+	asyncProducerOnce   sync.Once
+	asyncProducerHelper *AsyncProducer
+	syncProducerOnce    sync.Once
+	syncProducerHelper  *SyncProducer
 )
 
 const (
@@ -21,41 +25,58 @@ const (
 
 type ProducerOptions struct {
 	Brokers []string
-	//-1,0,1,
-	Ack    int
-	config *sarama.Config
+	//0 NONE
+	//1 gzip
+	//2 snappy
+	//3 lz4
+	//4 zstd
+	CompressionType int
+	//0  doesn't send any response, the TCP ACK is all you get.
+	// -1  waits for only the local commit to succeed before responding.
+	//1 waits for all in-sync replicas to commit before responding
+	Ack      int
+	ClientId string
+	Config   *sarama.Config
 }
 
 func producerLoadFromConfig(prefix string, c config.ConfigerSlice) *ProducerOptions {
 	p := prefix + "."
 	return &ProducerOptions{
-		Brokers: c.GetStringSlice(utils.CombineString(p, "brokers")),
-		Ack:     c.GetInt(utils.CombineString(p, "ack")),
+		Brokers:         c.GetStringSlice(utils.CombineString(p, "brokers")),
+		Ack:             c.GetInt(utils.CombineString(p, "ack")),
+		CompressionType: c.GetInt(utils.CombineString(p, "compressiontype")),
+		ClientId:        c.GetString(utils.CombineString(p, "clientid")),
 	}
 }
 
 func SampleProducerOptions(prefix string, c config.ConfigerSlice) *ProducerOptions {
 	op := producerLoadFromConfig(prefix, c)
-	op.config = sarama.NewConfig()
-	op.config.Producer.Timeout = defaultProduceTimeout
-	op.config.Producer.RequiredAcks = sarama.RequiredAcks(op.Ack)
-	op.config.Producer.Return.Successes = true
+	op.Config = sarama.NewConfig()
+	op.Config.Producer.Timeout = defaultProduceTimeout
+	op.Config.Producer.RequiredAcks = sarama.RequiredAcks(op.Ack)
+	op.Config.Producer.Return.Successes = true
+	if op.CompressionType > 0 {
+		op.Config.Producer.Compression = sarama.CompressionCodec(op.CompressionType)
+	}
+	if op.ClientId != "" {
+		op.Config.ClientID = op.ClientId
+	}
+
 	return op
 }
 
-type Producer struct {
+type AsyncProducer struct {
 	options *ProducerOptions
 	sarama.AsyncProducer
 }
 
-type Message struct {
-	key   []byte
-	value string
-	topic string
+type SyncProducer struct {
+	options *ProducerOptions
+	sarama.SyncProducer
 }
 
-func NewMessage(key, value []byte, topic string) *sarama.ProducerMessage {
-	return &sarama.ProducerMessage{
+func NewMessage(key, value []byte, topic string) *Message {
+	return &Message{
 		Topic:     topic,
 		Key:       sarama.ByteEncoder(key),
 		Value:     sarama.ByteEncoder(value),
@@ -63,7 +84,7 @@ func NewMessage(key, value []byte, topic string) *sarama.ProducerMessage {
 	}
 }
 
-func (s *Producer) PushMessage(msg *sarama.ProducerMessage) (*sarama.ProducerMessage, *sarama.ProducerError) {
+func (s *AsyncProducer) PushMessage(msg *Message) (*sarama.ProducerMessage, *sarama.ProducerError) {
 	s.AsyncProducer.Input() <- msg
 	select {
 	case err := <-s.AsyncProducer.Errors():
@@ -73,24 +94,40 @@ func (s *Producer) PushMessage(msg *sarama.ProducerMessage) (*sarama.ProducerMes
 	}
 }
 
-func (s *Producer) PushMessages(msgs ...*sarama.ProducerMessage) {
-	for _, msg := range msgs {
-		s.PushMessage(msg)
-	}
-}
-
-func NewProducer(options *ProducerOptions) (*Producer, error) {
-	producer, err := sarama.NewAsyncProducer(options.Brokers, options.config)
+func NewAsyncProducer(options *ProducerOptions) (*AsyncProducer, error) {
+	producer, err := sarama.NewAsyncProducer(options.Brokers, options.Config)
 	if err != nil {
-		return nil, errors.WithMessage(err, "new producer")
+		return nil, errors.WithMessage(err, "new async producer")
 	}
-	return &Producer{options, producer}, nil
+	return &AsyncProducer{options, producer}, nil
 }
 
-func DefaultProducer() *Producer {
-	producerOnce.Do(func() {
-		tmp, _ := NewProducer(SampleProducerOptions("kafka-producer", viper.GetSingleton()))
-		producerHelper = tmp
+func DefaultAsyncProducer() *AsyncProducer {
+	asyncProducerOnce.Do(func() {
+		tmp, err := NewAsyncProducer(SampleProducerOptions("kafka-producer", viper.GetSingleton()))
+		if err != nil {
+			panic(err)
+		}
+		asyncProducerHelper = tmp
 	})
-	return producerHelper
+	return asyncProducerHelper
+}
+
+func NewSyncProducer(options *ProducerOptions) (*SyncProducer, error) {
+	producer, err := sarama.NewSyncProducer(options.Brokers, options.Config)
+	if err != nil {
+		return nil, errors.WithMessage(err, "new sync producer")
+	}
+	return &SyncProducer{options, producer}, nil
+}
+
+func DefaultSyncProducer() *SyncProducer {
+	syncProducerOnce.Do(func() {
+		tmp, err := NewSyncProducer(SampleProducerOptions("kafka-producer", viper.GetSingleton()))
+		if err != nil {
+			panic(err)
+		}
+		syncProducerHelper = tmp
+	})
+	return syncProducerHelper
 }

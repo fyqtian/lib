@@ -31,13 +31,10 @@ func Test_loadFromConfig(t *testing.T) {
 
 func TestNewConsumer(t *testing.T) {
 	Convey("test newConsumer", t, func() {
-		cfg := viper.GetSingleton()
-		brokers := cfg.GetStringSlice("kafka-consumer.brokers")
-		topic := cfg.GetStringSlice("kafka-consumer.topics")[0]
 
-		callback, err := NewConsumer(brokers, topic, 0, -1)
-		So(err, ShouldEqual, nil)
-		for msg := range callback.Messages() {
+		Debug()
+		So(DefaultConsumer(), ShouldNotEqual, nil)
+		for msg := range DefaultConsumer().Messages() {
 			fmt.Println(msg.Topic, msg.Offset, string(msg.Value))
 		}
 	})

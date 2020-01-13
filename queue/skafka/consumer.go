@@ -20,14 +20,16 @@ var (
 )
 
 type ConsumerOptions struct {
-	Version   string
-	Topics    []string
-	Brokers   []string
-	GroupId   string
-	Assignor  string
-	Partition int
-	Debug     bool
-	config    *sarama.Config
+	//kafka version
+	Version     string
+	Topics      []string
+	Brokers     []string
+	GroupId     string
+	ClientId    string
+	Assignor    string
+	Debug       bool
+	Compression bool
+	Config      *sarama.Config
 }
 
 func (s *ConsumerOptions) balancer() sarama.BalanceStrategy {
@@ -48,30 +50,33 @@ func (s *ConsumerOptions) balancer() sarama.BalanceStrategy {
 func loadFromConfig(prefix string, c config.ConfigerSlice) *ConsumerOptions {
 	p := prefix + "."
 	return &ConsumerOptions{
-		Version:   c.GetString(utils.CombineString(p, "version")),
-		Topics:    c.GetStringSlice(utils.CombineString(p, "topics")),
-		Brokers:   c.GetStringSlice(utils.CombineString(p, "brokers")),
-		GroupId:   c.GetString(utils.CombineString(p, "groupid")),
-		Assignor:  c.GetString(utils.CombineString(p, "assignor")),
-		Partition: c.GetInt(utils.CombineString(p, "partition")),
-		Debug:     c.GetBool(utils.CombineString(p, "debug")),
+		Version:  c.GetString(utils.CombineString(p, "version")),
+		Topics:   c.GetStringSlice(utils.CombineString(p, "topics")),
+		Brokers:  c.GetStringSlice(utils.CombineString(p, "brokers")),
+		GroupId:  c.GetString(utils.CombineString(p, "groupid")),
+		ClientId: c.GetString(utils.CombineString(p, "clientid")),
+		Assignor: c.GetString(utils.CombineString(p, "assignor")),
+		Debug:    c.GetBool(utils.CombineString(p, "debug")),
 	}
 }
+
+var defaultKafkaVersion = sarama.MaxVersion
 
 func SampleOptions(prefix string, c config.ConfigerSlice) *ConsumerOptions {
 	op := loadFromConfig(prefix, c)
 	config := sarama.NewConfig()
-
+	config.Version = defaultKafkaVersion
 	if op.Version != "" {
 		version, err := sarama.ParseKafkaVersion(op.Version)
-		if err != nil {
-			panic(err)
-			//return err
+		if err == nil {
+			config.Version = version
 		}
-		config.Version = version
 	}
 	config.Consumer.Group.Rebalance.Strategy = op.balancer()
-	op.config = config
+	if op.ClientId != "" {
+		config.ClientID = op.ClientId
+	}
+	op.Config = config
 	return op
 }
 
@@ -87,7 +92,7 @@ type Consumer struct {
 // Setup is run at the beginning of a new session, before ConsumeClaim
 func (s *Consumer) Setup(sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
-	//close(consumer.ready)
+	close(s.ready)
 	return nil
 }
 
@@ -103,6 +108,7 @@ func (s *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	// Do not move the code below to a goroutine.
 	// The `ConsumeClaim` itself is called within a goroutine, see:
 	// https://github.com/Shopify/sarama/blob/master/consumer_group.go#L27-L29
+
 	for message := range claim.Messages() {
 		if s.callback != nil {
 			if err := s.callback(message); err == nil {
@@ -133,13 +139,14 @@ func (s *Consumer) Consumer(handler sarama.ConsumerGroupHandler) error {
 func Debug() {
 	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
 }
+
 func NewConsumerGroup(options *ConsumerOptions) (*Consumer, error) {
 	consumer := &Consumer{
 		ready:   make(chan bool),
 		options: options,
 	}
 
-	client, err := sarama.NewConsumerGroup(options.Brokers, options.GroupId, options.config)
+	client, err := sarama.NewConsumerGroup(options.Brokers, options.GroupId, options.Config)
 	if err != nil {
 		return nil, errors.WithMessage(err, "new consumerGroup")
 	}
@@ -152,7 +159,10 @@ func NewConsumerGroup(options *ConsumerOptions) (*Consumer, error) {
 
 func DefaultConsumerGroup() *Consumer {
 	groupOnce.Do(func() {
-		tmp, _ := NewConsumerGroup(SampleOptions("kafka-consumer", viper.GetSingleton()))
+		tmp, err := NewConsumerGroup(SampleOptions("kafka-consumer", viper.GetSingleton()))
+		if err != nil {
+			panic(err)
+		}
 		groupConsumer = tmp
 	})
 	return groupConsumer
