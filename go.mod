@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	bou.ke/monkey v1.0.2
+	github.com/Shopify/sarama v1.24.1
 	github.com/eclipse/paho.mqtt.golang v1.2.0
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/jinzhu/gorm v1.9.11
@@ -20,5 +21,6 @@ require (
 	golang.org/x/crypto v0.0.0-20191001170739-f9e2070545dc // indirect
 	golang.org/x/net v0.0.0-20190930134127-c5a3c61f89f3 // indirect
 	golang.org/x/sys v0.0.0-20191001151750-bb3f8db39f24 // indirect
+	golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 )
