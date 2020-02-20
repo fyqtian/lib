@@ -27,14 +27,18 @@ type Options struct {
 	FileName   string
 }
 
+func currentDir() string {
+	_, filename, _, _ := runtime.Caller(1)
+	return filepath.Dir(filename)
+}
+
 func DefaultOptions() *Options {
 	path1, _ := filepath.Abs("config")
 	path2, _ := filepath.Abs("configs")
 	path3, _ := filepath.Abs(".")
 	//for unit test
-	_, filename, _, _ := runtime.Caller(1)
 	// lib/configs/
-	path4 := filepath.Dir(filepath.Dir(filename)) + "s"
+	path4 := filepath.Dir(filepath.Dir(filepath.Dir(currentDir()))) + "/config"
 	return &Options{
 		ConfigPath: []string{path1, path2, path3, path4},
 		//default config
