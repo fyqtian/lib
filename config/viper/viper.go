@@ -38,7 +38,8 @@ func DefaultOptions() *Options {
 	path3, _ := filepath.Abs(".")
 	//for unit test
 	// lib/configs/
-	path4 := filepath.Dir(filepath.Dir(filepath.Dir(currentDir()))) + "/config"
+	path4 := filepath.Dir(filepath.Dir(currentDir())) + "/configs"
+
 	return &Options{
 		ConfigPath: []string{path1, path2, path3, path4},
 		//default config

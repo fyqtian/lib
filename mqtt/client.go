@@ -19,7 +19,7 @@ type Helper struct {
 	client     MQTT.Client
 	options    *Options
 	topicStore sync.Map
-	topicChan  map[string]chan []byte
+	topicChan  map[string]chan MQTT.Message
 	sync.Mutex
 	lostConnectionNotifyChan chan error
 }
@@ -31,7 +31,7 @@ type topicInfo struct {
 
 type Client interface {
 	PubSimple(topic string, payload interface{}) error
-	SubSimple(string) (<-chan []byte, error)
+	SubSimple(string) (<-chan MQTT.Message, error)
 }
 
 var (
@@ -59,6 +59,7 @@ func (s *Helper) connect() error {
 	return nil
 }
 
+//监听断链
 func (s *Helper) ListenLostConnection() <-chan error {
 	return s.lostConnectionNotifyChan
 }
@@ -99,10 +100,6 @@ func (s *Helper) PubSimple(topic string, payload interface{}) error {
 	return s.Pub(topic, 0, false, payload)
 }
 
-//todo
-//无法处理通配订阅
-// /sub/+ /sub/# 订阅不可用只能自己实现messageHandler
-// /sub/a 可以
 func (s *Helper) Sub(topic string, qos byte, callback MQTT.MessageHandler) error {
 	if !s.client.IsConnectionOpen() {
 		return ErrLostConnect
@@ -110,17 +107,17 @@ func (s *Helper) Sub(topic string, qos byte, callback MQTT.MessageHandler) error
 	if token := s.client.Subscribe(topic, qos, callback); token.Wait() && token.Error() != nil {
 		return token.Error()
 	}
+	//断链后被重新订阅
 	s.topicStore.Store(topic, &topicInfo{qos, callback})
-	//断链后被重新订阅，chan不同
 	return nil
 }
 
-func (s *Helper) SubSimple(topic string) (<-chan []byte, error) {
+func (s *Helper) SubSimple(topic string) (<-chan MQTT.Message, error) {
 	s.Mutex.Lock()
 	defer s.Mutex.Unlock()
-	s.topicChan[topic] = make(chan []byte, 4)
+	s.topicChan[topic] = make(chan MQTT.Message, 4)
 	err := s.Sub(topic, 0, func(client MQTT.Client, message MQTT.Message) {
-		s.topicChan[topic] <- message.Payload()
+		s.topicChan[topic] <- message
 	})
 	return s.topicChan[topic], err
 }
@@ -162,7 +159,7 @@ func NewMqtt(option *Options) (*Helper, error) {
 	if err := h.connect(); err != nil {
 		return nil, err
 	}
-	h.topicChan = make(map[string]chan []byte, 8)
+	h.topicChan = make(map[string]chan MQTT.Message, 8)
 	h.lostConnectionNotifyChan = make(chan error)
 	return h, nil
 }
@@ -217,14 +214,12 @@ func SampleOptions(prefix string, c config.Configer) *Options {
 }
 
 func DefaultMqtt() *Helper {
+	var err error
 	once.Do(func() {
-		//var err error
-		//todo
-		//igonre error it will cause panic
-		Mqtt, _ = NewWithRetry(SampleOptions("emq", viper.GetSingleton()), 10, 5*time.Second)
-		//if err != nil {
-		//	panic(err)
-		//}
+		Mqtt, err = NewWithRetry(SampleOptions("emq", viper.GetSingleton()), 10, 5*time.Second)
+		if err != nil {
+			panic(err)
+		}
 	})
 	return Mqtt
 }

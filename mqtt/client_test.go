@@ -53,7 +53,7 @@ func TestHelper_Sub(t *testing.T) {
 
 		err = c.PubSimple(topic, testMessage)
 		So(err, ShouldEqual, nil)
-		time.Sleep(2e9)
+		time.Sleep(5e9)
 
 		So(string(receive), ShouldEqual, testMessage)
 	})
