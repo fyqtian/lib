@@ -8,6 +8,8 @@ import (
 	"github.com/fyqtian/lib/utils"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	Viper "github.com/spf13/viper"
+	"strings"
 	"sync"
 	"time"
 )
@@ -175,4 +177,49 @@ func (s *Helper) combineDSN() string {
 		s.options.Charset,
 		s.options.Location)
 	return dsn
+}
+
+type logger interface {
+	Infof(template string, args ...interface{})
+}
+
+func LazyLoadDB(cfg config.Configer, l logger) error {
+	var rel *Viper.Viper
+	switch v := cfg.(type) {
+	case *viper.Helper:
+		rel = v.Viper
+	case *Viper.Viper:
+		rel = v
+	default:
+		return errors.New("invalid config")
+	}
+
+	dbsName := make(map[string]bool)
+	keys := rel.AllKeys()
+	for _, key := range keys {
+		if strings.Contains(strings.ToLower(key), "db") {
+			//casue panic
+			dbName := strings.Split(key, ".")[0]
+			dbsName[dbName] = true
+		}
+	}
+	for db := range dbsName {
+		op := SampleOptions(db, cfg)
+		prefix := db + "."
+		rs, err := NewWithRetry(op, cfg.GetInt(prefix+"retry"), cfg.GetDuration(prefix+"interval"))
+		if err != nil {
+			return fmt.Errorf("connect db %s %w", db, err)
+		}
+		l.Infof("connect %s addr %s success", db, op.Host)
+		store.Store(db, rs)
+	}
+	return nil
+}
+func GetDB(name string) *Helper {
+	name = strings.ToLower(name)
+	if v, ok := store.Load(name); ok {
+		rel, _ := v.(*Helper)
+		return rel
+	}
+	return nil
 }

@@ -36,7 +36,7 @@ type Client interface {
 
 var (
 	ErrNotExists   = errors.New("mqtt not exists")
-	ErrLostConnect = errors.New("Connection has lost")
+	ErrLostConnect = errors.New("mqtt connection lost")
 	once           sync.Once
 	Mqtt           *Helper
 )
@@ -149,6 +149,13 @@ func (s *Helper) GetOptionsReader() MQTT.ClientOptionsReader {
 }
 func (s *Helper) GetClient() MQTT.Client {
 	return s.client
+}
+
+func (s *Helper) Disconnect(i uint) {
+	s.client.Disconnect(i)
+	for _, v := range s.topicChan {
+		close(v)
+	}
 }
 
 func NewMqtt(option *Options) (*Helper, error) {
