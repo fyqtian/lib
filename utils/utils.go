@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -37,4 +40,16 @@ func CombineString(strs ...string) string {
 		buffer.WriteString(v)
 	}
 	return buffer.String()
+}
+
+func Abs(f string) (p string) {
+	p, _ = filepath.Abs(f)
+	return
+}
+
+//unexcepted path when go test or working with ide
+func ExecPath() string {
+	file, _ := exec.LookPath(os.Args[0])
+	//得到全路径，比如在windows下E:\\golang\\test\\a.exe
+	return filepath.Dir(Abs(file))
 }
