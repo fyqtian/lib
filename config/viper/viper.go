@@ -34,14 +34,16 @@ func currentDir() string {
 }
 
 func (s *Options) SetPaths(p ...string) {
+	var tmp []string
 	for _, v := range p {
 		if filepath.IsAbs(v) {
-			s.ConfigPath = append(s.ConfigPath, v)
+			tmp = append(tmp, v)
 		} else {
 			abs, _ := filepath.Abs(v)
-			s.ConfigPath = append(s.ConfigPath, filepath.Join(utils.ExecPath(), v), abs)
+			tmp = append(tmp, filepath.Join(utils.ExecPath(), v), abs)
 		}
 	}
+	s.ConfigPath = tmp
 }
 
 func DefaultOptions() *Options {
