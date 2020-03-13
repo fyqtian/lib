@@ -5,7 +5,6 @@ import (
 	"github.com/fyqtian/lib/utils"
 	"github.com/spf13/viper"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -34,26 +33,28 @@ func currentDir() string {
 	return filepath.Dir(filename)
 }
 
-func DefaultOptions() *Options {
+func (s *Options) SetPaths(p ...string) {
+	for _, v := range p {
+		if filepath.IsAbs(v) {
+			s.ConfigPath = append(s.ConfigPath, v)
+		} else {
+			abs, _ := filepath.Abs(v)
+			s.ConfigPath = append(s.ConfigPath, filepath.Join(utils.ExecPath(), v), abs)
+		}
+	}
+}
 
+func DefaultOptions() *Options {
 	//for unit test
 	// lib/configs/
 	unitPath := filepath.Dir(filepath.Dir(currentDir())) + "/configs"
-	execPath := utils.ExecPath()
-	return &Options{
-		ConfigPath: []string{
-			utils.Abs("config"),
-			utils.Abs("configs"),
-			utils.Abs("."),
-			path.Join(execPath, "config"),
-			path.Join(execPath, "configs"),
-			utils.ExecPath(),
-			unitPath,
-		},
-		//default config
+	op := &Options{
 		FileName: os.Getenv("RUN_TIME"),
 	}
+	op.SetPaths("config", "configs", ".", unitPath)
+	return op
 }
+
 func init() {
 	//ignore error
 	V, _ = NewViper(DefaultOptions())
